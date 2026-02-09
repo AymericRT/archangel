@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { Resend } from 'resend';
-import { RESEND_API_KEY, CONTACT_EMAIL } from '$env/static/private';
-
-const resend = new Resend(RESEND_API_KEY);
+import { env } from '$env/dynamic/private';
 
 export async function POST({ request }) {
 	const { name, email, company, subject, message } = await request.json();
@@ -11,9 +9,11 @@ export async function POST({ request }) {
 		return json({ error: 'Missing required fields' }, { status: 400 });
 	}
 
+	const resend = new Resend(env.RESEND_API_KEY);
+
 	const { error } = await resend.emails.send({
 		from: 'Contact Form <onboarding@resend.dev>',
-		to: CONTACT_EMAIL,
+		to: env.CONTACT_EMAIL ?? '',
 		replyTo: email,
 		subject: `[KEG Contact] ${subject}`,
 		html: `
