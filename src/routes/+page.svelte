@@ -410,6 +410,159 @@ renderer.render(scene, camera);
 
 			const earthTexLoader = new THREE.TextureLoader();
 			const earthGeometry = new THREE.IcosahedronGeometry(3, 80);
+
+			// Compute flat-disc radar target positions for each vertex
+			const posAttr = earthGeometry.attributes.position;
+			const radarPositions = new Float32Array(posAttr.count * 3);
+			const radarMaxRadius = 3.0;
+			const numRings = 4;
+			const ringSpacing = radarMaxRadius / numRings;
+			const ringSnapThreshold = 0.15;
+
+			for (let i = 0; i < posAttr.count; i++) {
+				const x = posAttr.getX(i);
+				const y = posAttr.getY(i);
+				const z = posAttr.getZ(i);
+				const r = Math.sqrt(x * x + y * y + z * z);
+
+				const theta = Math.atan2(z, x);
+				const phi = Math.acos(Math.max(-1, Math.min(1, y / r)));
+
+				// sqrt mapping for more uniform area distribution
+				let radarR = Math.sqrt(phi / Math.PI) * radarMaxRadius;
+
+				// Snap to nearest concentric ring
+				const nearestRing = Math.round(radarR / ringSpacing) * ringSpacing;
+				if (Math.abs(radarR - nearestRing) < ringSnapThreshold && nearestRing > 0 && nearestRing <= radarMaxRadius) {
+					radarR = nearestRing;
+				}
+
+				radarPositions[i * 3] = radarR * Math.cos(theta);
+				radarPositions[i * 3 + 1] = radarR * Math.sin(theta);
+				radarPositions[i * 3 + 2] = 0.0;
+			}
+
+			earthGeometry.setAttribute('aRadarPos', new THREE.BufferAttribute(radarPositions, 3));
+
+			// Bridge morph: initialize with sphere positions, then load GLB
+			const bridgePositions = new Float32Array(posAttr.count * 3);
+			for (let i = 0; i < posAttr.count; i++) {
+				bridgePositions[i * 3] = posAttr.getX(i);
+				bridgePositions[i * 3 + 1] = posAttr.getY(i);
+				bridgePositions[i * 3 + 2] = posAttr.getZ(i);
+			}
+			const bridgeAttr = new THREE.BufferAttribute(bridgePositions, 3);
+			earthGeometry.setAttribute('aDomePos', bridgeAttr);
+			let domeReady = false;
+
+			// Load bridge GLB and map particles to its surface
+			const bridgeLoader = new GLTFLoader();
+			bridgeLoader.load('/models/bridge.glb', (gltf) => {
+				// Collect all triangles from the GLB meshes
+				const triangles: { a: THREE.Vector3; b: THREE.Vector3; c: THREE.Vector3; area: number }[] = [];
+				let totalArea = 0;
+				const tempA = new THREE.Vector3();
+				const tempB = new THREE.Vector3();
+				const tempC = new THREE.Vector3();
+
+				gltf.scene.updateMatrixWorld(true);
+				let meshCount = 0;
+				const meshInfo: string[] = [];
+				gltf.scene.traverse((child) => {
+					if (!(child as THREE.Mesh).isMesh) return;
+					const mesh = child as THREE.Mesh;
+					const geo = mesh.geometry;
+					const pos = geo.attributes.position;
+					const idx = geo.index;
+					const matrix = mesh.matrixWorld;
+					meshCount++;
+
+					const triCount = idx ? idx.count / 3 : pos.count / 3;
+					const trisBefore = triangles.length;
+					for (let t = 0; t < triCount; t++) {
+						const i0 = idx ? idx.getX(t * 3) : t * 3;
+						const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
+						const i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+
+						tempA.set(pos.getX(i0), pos.getY(i0), pos.getZ(i0)).applyMatrix4(matrix);
+						tempB.set(pos.getX(i1), pos.getY(i1), pos.getZ(i1)).applyMatrix4(matrix);
+						tempC.set(pos.getX(i2), pos.getY(i2), pos.getZ(i2)).applyMatrix4(matrix);
+
+						const ab = new THREE.Vector3().subVectors(tempB, tempA);
+						const ac = new THREE.Vector3().subVectors(tempC, tempA);
+						const area = ab.cross(ac).length() * 0.5;
+						if (area < 1e-8) continue;
+
+						triangles.push({
+							a: tempA.clone(), b: tempB.clone(), c: tempC.clone(), area
+						});
+						totalArea += area;
+					}
+					meshInfo.push(`${mesh.name || 'unnamed'}: ${triCount} tris, ${triangles.length - trisBefore} valid`);
+				});
+				console.log(`[Bridge GLB] Found ${meshCount} meshes:`, meshInfo);
+				console.log(`[Bridge GLB] Total valid triangles: ${triangles.length}, total area: ${totalArea.toFixed(2)}`);
+
+				if (triangles.length === 0) { domeReady = true; return; }
+
+				// No CDF needed — use uniform triangle sampling so thin cables/road
+				// get visible particle density (area-weighting over-favors bulky towers)
+				const triTotal = triangles.length;
+
+				// Compute bounding box to normalize and scale
+				const bbox = new THREE.Box3();
+				for (const tri of triangles) {
+					bbox.expandByPoint(tri.a);
+					bbox.expandByPoint(tri.b);
+					bbox.expandByPoint(tri.c);
+				}
+				const center = new THREE.Vector3();
+				bbox.getCenter(center);
+				const size = new THREE.Vector3();
+				bbox.getSize(size);
+				const maxDim = Math.max(size.x, size.y, size.z);
+				const scale = 12.0 / maxDim; // fit into ~12 unit span (200% of original)
+				console.log(`[Bridge GLB] BBox min: [${bbox.min.x.toFixed(2)}, ${bbox.min.y.toFixed(2)}, ${bbox.min.z.toFixed(2)}]`);
+				console.log(`[Bridge GLB] BBox max: [${bbox.max.x.toFixed(2)}, ${bbox.max.y.toFixed(2)}, ${bbox.max.z.toFixed(2)}]`);
+				console.log(`[Bridge GLB] Size: [${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)}], maxDim: ${maxDim.toFixed(2)}, scale: ${scale.toFixed(4)}`);
+
+				// Sample random points on triangles, area-weighted
+				// Use deterministic seeded RNG for consistency
+				let seed = 42;
+				function seededRandom() {
+					seed = (seed * 16807 + 0) % 2147483647;
+					return (seed - 1) / 2147483646;
+				}
+
+				function sampleTriangle(tri: { a: THREE.Vector3; b: THREE.Vector3; c: THREE.Vector3 }) {
+					let u = seededRandom();
+					let v = seededRandom();
+					if (u + v > 1) { u = 1 - u; v = 1 - v; }
+					const w = 1 - u - v;
+					return new THREE.Vector3(
+						tri.a.x * w + tri.b.x * u + tri.c.x * v,
+						tri.a.y * w + tri.b.y * u + tri.c.y * v,
+						tri.a.z * w + tri.b.z * u + tri.c.z * v
+					);
+				}
+
+				function pickTriangle(): number {
+					return Math.floor(seededRandom() * triTotal);
+				}
+
+				// Distribute all particles across the bridge surface
+				for (let i = 0; i < posAttr.count; i++) {
+					const triIdx = pickTriangle();
+					const pt = sampleTriangle(triangles[triIdx]);
+					bridgePositions[i * 3] = (pt.x - center.x) * scale;
+					bridgePositions[i * 3 + 1] = (pt.y - center.y) * scale;
+					bridgePositions[i * 3 + 2] = (pt.z - center.z) * scale;
+				}
+
+				bridgeAttr.needsUpdate = true;
+				domeReady = true;
+			});
+
 			const earthMaterial = new THREE.ShaderMaterial({
 				transparent: true,
 				uniforms: {
@@ -418,18 +571,29 @@ renderer.render(scene, camera);
 					uActivity: { value: 0 },
 					uMouseNDC: { value: new THREE.Vector2(0, 0) },
 					uMouseHover: { value: 0 },
-					uColorProgress: { value: 0 }
+					uColorProgress: { value: 0 },
+					uMorphProgress: { value: 1 },
+					uSweepAngle: { value: 0 },
+					uDomeMorphProgress: { value: 0 }
 				},
 				vertexShader: `
+					attribute vec3 aRadarPos;
+					attribute vec3 aDomePos;
 					uniform sampler2D specMap;
 					uniform float uTime;
 					uniform float uActivity;
 					uniform vec2 uMouseNDC;
 					uniform float uMouseHover;
+					uniform float uMorphProgress;
+					uniform float uDomeMorphProgress;
 					varying float vIsLand;
 					varying vec3 vNormal;
 					varying vec3 vViewDir;
 					varying float vDepth;
+					varying float vRadarAngle;
+					varying float vRadarRadius;
+					varying float vMorphProgress;
+					varying float vDomeMorphProgress;
 
 					// Pseudo-random
 					float hash(float n) { return fract(sin(n) * 43758.5453); }
@@ -472,28 +636,57 @@ renderer.render(scene, camera);
 
 							// Combine scroll activity with mouse hover proximity
 							float activity = max(uActivity, mouseInfluence);
-							pos += (tangent * dT + bitangent * dB) * activity;
+							// Reduce wandering as any morph progresses
+							float anyMorph = max(uMorphProgress, uDomeMorphProgress);
+							pos += (tangent * dT + bitangent * dB) * activity * (1.0 - anyMorph);
 						}
 
+						// Chain morphs: globe → radar → dome
+						float radarT = smoothstep(0.0, 1.0, uMorphProgress);
+						float domeT = smoothstep(0.0, 1.0, uDomeMorphProgress);
+						vec3 finalPos = pos;
+						finalPos = mix(finalPos, aRadarPos, radarT);
+						finalPos = mix(finalPos, aDomePos, domeT);
+
+						// Pass info to fragment shader
+						vRadarAngle = atan(aRadarPos.y, aRadarPos.x);
+						vRadarRadius = length(aRadarPos.xy);
+						vMorphProgress = uMorphProgress;
+						vDomeMorphProgress = uDomeMorphProgress;
+
 						vNormal = normalize(normalMatrix * normal);
-						vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+						vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
 						vViewDir = normalize(-mvPosition.xyz);
 						vDepth = -mvPosition.z;
 						// Far particles get bigger (blurrier), close ones stay small (sharp)
 						float depthFactor = smoothstep(2.0, 8.0, vDepth);
 						float size = mix(0.15, 0.6, depthFactor);
-						gl_PointSize = vIsLand > 0.3 ? size * (30.0 / -mvPosition.z) : 0.0;
+						float globeSize = vIsLand > 0.3 ? size * (30.0 / -mvPosition.z) : 0.0;
+						// Radar and tower show ALL particles, not just land
+						float radarSize = 0.3 * (30.0 / -mvPosition.z);
+						float domeSize = 0.2 * (30.0 / -mvPosition.z);
+						float morphedSize = mix(globeSize, radarSize, radarT);
+						gl_PointSize = mix(morphedSize, domeSize, domeT);
 						gl_Position = projectionMatrix * mvPosition;
 					}
 				`,
 				fragmentShader: `
 					uniform float uColorProgress;
+					uniform float uMorphProgress;
+					uniform float uDomeMorphProgress;
+					uniform float uSweepAngle;
+					uniform float uTime;
 					varying float vIsLand;
 					varying vec3 vNormal;
 					varying vec3 vViewDir;
 					varying float vDepth;
+					varying float vRadarAngle;
+					varying float vRadarRadius;
+					varying float vMorphProgress;
+					varying float vDomeMorphProgress;
 					void main() {
-						if (vIsLand < 0.3) discard;
+						float anyMorphF = max(vMorphProgress, vDomeMorphProgress);
+						if (vIsLand < 0.3 && anyMorphF < 0.01) discard;
 						float d = length(gl_PointCoord - 0.5) * 2.0;
 						if (d > 1.0) discard;
 						float lighting = dot(vNormal, normalize(vec3(1.0, 1.0, 0.5))) * 0.3 + 0.7;
@@ -509,6 +702,59 @@ renderer.render(scene, camera);
 						float depthFactor = smoothstep(2.0, 8.0, vDepth);
 						float edge = mix(0.2, 0.8, depthFactor);
 						float alpha = smoothstep(1.0, edge, d) * mix(0.9, 0.3, depthFactor);
+
+						// Radar overlay
+						float morphT = smoothstep(0.0, 1.0, vMorphProgress);
+						if (morphT > 0.01) {
+							vec3 radarGreen = vec3(0.1, 0.9, 0.3);
+							vec3 radarDim = vec3(0.04, 0.25, 0.08);
+
+							// Concentric ring brightening
+							float radarMaxR = 3.0;
+							float ringSpacing = radarMaxR / 4.0;
+							float ringDist = mod(vRadarRadius + 0.001, ringSpacing);
+							float onRing = 1.0 - smoothstep(0.0, 0.1, min(ringDist, ringSpacing - ringDist));
+
+							// Sweep line with trailing afterglow
+							float angleDiff = vRadarAngle - uSweepAngle;
+							angleDiff = mod(angleDiff + 3.14159, 6.28318) - 3.14159;
+							float sweep = smoothstep(-0.8, 0.0, angleDiff) * smoothstep(0.03, 0.0, angleDiff);
+							float trail = smoothstep(-2.0, 0.0, angleDiff) * smoothstep(0.03, 0.0, angleDiff) * 0.25;
+
+							// Compose radar color
+							vec3 radarCol = radarDim;
+							radarCol += radarGreen * onRing * 0.5;
+							radarCol += radarGreen * (sweep + trail);
+
+							col = mix(col, radarCol, morphT);
+
+							// Crisper alpha in radar mode
+							float radarAlpha = smoothstep(1.0, 0.3, d) * 0.85;
+							alpha = mix(alpha, radarAlpha, morphT);
+						}
+
+						// Bridge overlay
+						float domeT = smoothstep(0.0, 1.0, vDomeMorphProgress);
+						if (domeT > 0.01) {
+							vec3 steelBlue = vec3(0.4, 0.65, 0.9);
+							vec3 steelDim = vec3(0.08, 0.12, 0.2);
+
+							// Structural shimmer along cables
+							float shimmer = sin(uTime * 1.5 + vNormal.x * 10.0) * 0.2 + 0.8;
+
+							// Edge highlight
+							float bridgeFresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 2.0);
+
+							vec3 bridgeCol = steelDim * shimmer;
+							bridgeCol += steelBlue * bridgeFresnel * 0.5;
+							bridgeCol += steelBlue * 0.15;
+
+							col = mix(col, bridgeCol, domeT);
+
+							float bridgeAlpha = smoothstep(1.0, 0.2, d) * 0.9;
+							alpha = mix(alpha, bridgeAlpha, domeT);
+						}
+
 						gl_FragColor = vec4(col, alpha);
 					}
 				`
@@ -549,7 +795,11 @@ renderer.render(scene, camera);
 				const currentScroll = window.scrollY;
 				const delta = currentScroll - lastCapScroll;
 				lastCapScroll = currentScroll;
-				earthMesh.rotation.y += delta * 0.003;
+				const curRadarMorph = earthMaterial.uniforms.uMorphProgress.value;
+				const curDomeMorph = earthMaterial.uniforms.uDomeMorphProgress.value;
+				const anyMorph = Math.max(curRadarMorph, curDomeMorph);
+				// Scroll-driven rotation fades out during morphs; dome adds slow auto-rotate
+				earthMesh.rotation.y += delta * 0.003 * (1.0 - anyMorph) + curDomeMorph * 0.004;
 				earthMaterial.uniforms.uTime.value += 0.016;
 
 				// Ease activity up when scrolling, ease down when stopped
@@ -569,6 +819,41 @@ renderer.render(scene, camera);
 
 				// Dot color: blue → slate based on progress
 				earthMaterial.uniforms.uColorProgress.value = progress;
+
+				// Radar morph: already morphed at start, hold through Defense, fade as bridge takes over
+				let radarMorph = 0;
+				if (progress < 0.22) {
+					radarMorph = 1;
+				} else {
+					radarMorph = Math.max(0, 1 - (progress - 0.22) / 0.06);
+				}
+				earthMaterial.uniforms.uMorphProgress.value = radarMorph;
+
+				// Bridge morph: ramp in for Infrastructure, hold, fade back to globe
+				let domeMorph = 0;
+				if (domeReady) {
+					if (progress >= 0.22 && progress < 0.55) {
+						domeMorph = Math.min(1, (progress - 0.22) / 0.06);
+					} else if (progress >= 0.55) {
+						domeMorph = Math.max(0, 1 - (progress - 0.55) / 0.06);
+					}
+				}
+				earthMaterial.uniforms.uDomeMorphProgress.value = domeMorph;
+
+				// Sweep angle rotation when radar is active
+				if (radarMorph > 0) {
+					earthMaterial.uniforms.uSweepAngle.value += 0.03;
+				}
+
+				// Pull camera back during bridge morph so full model is visible
+				const targetZ = 5 + domeMorph * 9; // 5 → 14 during bridge
+				earthCamera.position.z += (targetZ - earthCamera.position.z) * 0.15;
+
+				// Un-tilt for radar and tower (both should stand upright)
+				const baseTilt = -23.4 * Math.PI / 180;
+				const tiltFactor = Math.max(radarMorph, domeMorph);
+				const targetTilt = baseTilt * (1.0 - tiltFactor);
+				earthGroup.rotation.z += (targetTilt - earthGroup.rotation.z) * 0.05;
 
 				// Background color stops:
 				// 0.00 = Defense start → Dark Navy
@@ -1125,7 +1410,8 @@ renderer.render(scene, camera);
 					{ title: 'Surveillance Systems', desc: 'Integrated "Air-Ground" supervision capabilities to detect and track activity across borders.' },
 					{ title: 'Tactical Response', desc: 'Full-spectrum CBRNE detection vehicles and specialized riot control systems.' },
 					{ title: 'Modernization', desc: 'Retrofitting and upgrading critical defense platforms and air defense units.' },
-					{ title: 'Optics & Vision', desc: 'Advanced night vision systems and "future-proof" optical gear.' }
+					{ title: 'Optics & Vision', desc: 'Advanced night vision systems and "future-proof" optical gear.' },
+					{ title: 'Software Engineering', desc: 'Full-lifecycle development—from design to implementation—creating secure, reliable systems for mission-critical operations.' }
 				] as item, i}
 					<div class="cap-item group border-t border-slate-700 last:border-b">
 						<div class="flex items-start gap-8 py-8 transition-all duration-500 group-hover:pl-4">
@@ -1152,8 +1438,7 @@ renderer.render(scene, camera);
 					<div class="space-y-6">
 						{#each [
 							{ title: 'Resilient Engineering', desc: 'Design and development of infrastructure ecosystems capable of withstanding environmental and operational challenges.', num: '01' },
-							{ title: 'Mechanical Services', desc: 'Precision fabrication, manufacturing, and assembly of complex components for large-scale industrial projects.', num: '02' },
-							{ title: 'Software Engineering', desc: 'Full-lifecycle development—from design to implementation—creating secure, reliable systems for mission-critical operations.', num: '03' }
+							{ title: 'Mechanical Services', desc: 'Precision fabrication, manufacturing, and assembly of complex components for large-scale industrial projects.', num: '02' }
 						] as item}
 							<div class="cap-item group relative overflow-hidden border border-slate-600 bg-slate-800/60 p-8 transition-all duration-500 hover:border-slate-500 hover:shadow-lg">
 								<div class="flex items-start gap-6">
