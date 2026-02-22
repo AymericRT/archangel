@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import * as THREE from 'three';
 	import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+	import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 	import { gsap } from 'gsap';
 	import { ScrollTrigger } from 'gsap/ScrollTrigger';
 	import Lenis from 'lenis';
@@ -382,7 +383,7 @@ renderer.render(scene, camera);
 		const capSection = document.getElementById('capabilities-wrapper');
 		if (capabilitiesCanvas && capSection) {
 			const earthScene = new THREE.Scene();
-			const earthCamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+			const earthCamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1.0, 5000);
 			earthCamera.position.set(0, 0, 5);
 			earthCamera.lookAt(0, 0, 0);
 
@@ -410,6 +411,12 @@ renderer.render(scene, camera);
 
 			const earthTexLoader = new THREE.TextureLoader();
 			const earthGeometry = new THREE.IcosahedronGeometry(3, 80);
+			// Mirror flip UVs horizontally so nations appear correctly
+			const uvAttr = earthGeometry.attributes.uv;
+			for (let i = 0; i < uvAttr.count; i++) {
+				uvAttr.setX(i, 1.0 - uvAttr.getX(i));
+			}
+			uvAttr.needsUpdate = true;
 
 			// Compute flat-disc radar target positions for each vertex
 			const posAttr = earthGeometry.attributes.position;
@@ -453,22 +460,23 @@ renderer.render(scene, camera);
 			}
 			const bridgeAttr = new THREE.BufferAttribute(bridgePositions, 3);
 			earthGeometry.setAttribute('aDomePos', bridgeAttr);
+
 			let domeReady = false;
 
-			// Load bridge GLB and map particles to its surface
-			const bridgeLoader = new GLTFLoader();
-			bridgeLoader.load('/models/bridge.glb', (gltf) => {
-				// Collect all triangles from the GLB meshes
+			// Load bridge OBJ and map particles to its surface
+			const bridgeLoader = new OBJLoader();
+			bridgeLoader.load('/InfraBridge.obj', (obj) => {
+				// Collect all triangles from the OBJ meshes
 				const triangles: { a: THREE.Vector3; b: THREE.Vector3; c: THREE.Vector3; area: number }[] = [];
 				let totalArea = 0;
 				const tempA = new THREE.Vector3();
 				const tempB = new THREE.Vector3();
 				const tempC = new THREE.Vector3();
 
-				gltf.scene.updateMatrixWorld(true);
+				obj.updateMatrixWorld(true);
 				let meshCount = 0;
 				const meshInfo: string[] = [];
-				gltf.scene.traverse((child) => {
+				obj.traverse((child) => {
 					if (!(child as THREE.Mesh).isMesh) return;
 					const mesh = child as THREE.Mesh;
 					const geo = mesh.geometry;
@@ -500,8 +508,8 @@ renderer.render(scene, camera);
 					}
 					meshInfo.push(`${mesh.name || 'unnamed'}: ${triCount} tris, ${triangles.length - trisBefore} valid`);
 				});
-				console.log(`[Bridge GLB] Found ${meshCount} meshes:`, meshInfo);
-				console.log(`[Bridge GLB] Total valid triangles: ${triangles.length}, total area: ${totalArea.toFixed(2)}`);
+				console.log(`[Bridge OBJ] Found ${meshCount} meshes:`, meshInfo);
+				console.log(`[Bridge OBJ] Total valid triangles: ${triangles.length}, total area: ${totalArea.toFixed(2)}`);
 
 				if (triangles.length === 0) { domeReady = true; return; }
 
@@ -521,10 +529,10 @@ renderer.render(scene, camera);
 				const size = new THREE.Vector3();
 				bbox.getSize(size);
 				const maxDim = Math.max(size.x, size.y, size.z);
-				const scale = 12.0 / maxDim; // fit into ~12 unit span (200% of original)
-				console.log(`[Bridge GLB] BBox min: [${bbox.min.x.toFixed(2)}, ${bbox.min.y.toFixed(2)}, ${bbox.min.z.toFixed(2)}]`);
-				console.log(`[Bridge GLB] BBox max: [${bbox.max.x.toFixed(2)}, ${bbox.max.y.toFixed(2)}, ${bbox.max.z.toFixed(2)}]`);
-				console.log(`[Bridge GLB] Size: [${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)}], maxDim: ${maxDim.toFixed(2)}, scale: ${scale.toFixed(4)}`);
+				const scale = 1080.0 / maxDim;
+				console.log(`[Bridge OBJ] BBox min: [${bbox.min.x.toFixed(2)}, ${bbox.min.y.toFixed(2)}, ${bbox.min.z.toFixed(2)}]`);
+				console.log(`[Bridge OBJ] BBox max: [${bbox.max.x.toFixed(2)}, ${bbox.max.y.toFixed(2)}, ${bbox.max.z.toFixed(2)}]`);
+				console.log(`[Bridge OBJ] Size: [${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)}], maxDim: ${maxDim.toFixed(2)}, scale: ${scale.toFixed(4)}`);
 
 				// Sample random points on triangles, area-weighted
 				// Use deterministic seeded RNG for consistency
@@ -551,12 +559,20 @@ renderer.render(scene, camera);
 				}
 
 				// Distribute all particles across the bridge surface
+				// Rotate bridge 45 deg around Y axis (green line)
+				const bridgeAngleY = Math.PI * 0.25;
+				const cosY = Math.cos(bridgeAngleY);
+				const sinY = Math.sin(bridgeAngleY);
 				for (let i = 0; i < posAttr.count; i++) {
 					const triIdx = pickTriangle();
 					const pt = sampleTriangle(triangles[triIdx]);
-					bridgePositions[i * 3] = (pt.x - center.x) * scale;
-					bridgePositions[i * 3 + 1] = (pt.y - center.y) * scale;
-					bridgePositions[i * 3 + 2] = (pt.z - center.z) * scale;
+					const noise = 0.5;
+					const x = (pt.x - center.x) * scale + (seededRandom() - 0.5) * noise;
+					const y = (pt.y - center.y) * scale + (seededRandom() - 0.5) * noise;
+					const z = (pt.z - center.z) * scale + (seededRandom() - 0.5) * noise;
+					bridgePositions[i * 3] = x * cosY + z * sinY + 260;
+					bridgePositions[i * 3 + 1] = y;
+					bridgePositions[i * 3 + 2] = -x * sinY + z * cosY;
 				}
 
 				bridgeAttr.needsUpdate = true;
@@ -662,7 +678,7 @@ renderer.render(scene, camera);
 						float depthFactor = smoothstep(2.0, 8.0, vDepth);
 						float size = mix(0.15, 0.6, depthFactor);
 						float globeSize = vIsLand > 0.3 ? size * (30.0 / -mvPosition.z) : 0.0;
-						// Radar and tower show ALL particles, not just land
+						// Radar and bridge show ALL particles, not just land
 						float radarSize = 0.3 * (30.0 / -mvPosition.z);
 						float domeSize = 0.2 * (30.0 / -mvPosition.z);
 						float morphedSize = mix(globeSize, radarSize, radarT);
@@ -798,8 +814,16 @@ renderer.render(scene, camera);
 				const curRadarMorph = earthMaterial.uniforms.uMorphProgress.value;
 				const curDomeMorph = earthMaterial.uniforms.uDomeMorphProgress.value;
 				const anyMorph = Math.max(curRadarMorph, curDomeMorph);
-				// Scroll-driven rotation fades out during morphs; dome adds slow auto-rotate
-				earthMesh.rotation.y += delta * 0.003 * (1.0 - anyMorph) + curDomeMorph * 0.004;
+				// Scroll-driven rotation only when scrolling down, only for globe
+				const downDelta = Math.max(0, delta);
+				const scrollingDown = downDelta > 0.5;
+				if (anyMorph < 0.01) {
+					// Globe mode: free scroll-driven rotation
+					earthMesh.rotation.y += downDelta * 0.003;
+				} else {
+					// Radar & bridge: same fixed angle so transition is smooth
+					earthMesh.rotation.y += (0 - earthMesh.rotation.y) * 0.05;
+				}
 				earthMaterial.uniforms.uTime.value += 0.016;
 
 				// Ease activity up when scrolling, ease down when stopped
@@ -822,32 +846,38 @@ renderer.render(scene, camera);
 
 				// Radar morph: already morphed at start, hold through Defense, fade as bridge takes over
 				let radarMorph = 0;
-				if (progress < 0.22) {
+				if (progress < 0.30) {
 					radarMorph = 1;
 				} else {
-					radarMorph = Math.max(0, 1 - (progress - 0.22) / 0.06);
+					radarMorph = Math.max(0, 1 - (progress - 0.30) / 0.06);
 				}
 				earthMaterial.uniforms.uMorphProgress.value = radarMorph;
 
 				// Bridge morph: ramp in for Infrastructure, hold, fade back to globe
 				let domeMorph = 0;
 				if (domeReady) {
-					if (progress >= 0.22 && progress < 0.55) {
-						domeMorph = Math.min(1, (progress - 0.22) / 0.06);
+					if (progress >= 0.30 && progress < 0.55) {
+						domeMorph = Math.min(1, (progress - 0.30) / 0.06);
 					} else if (progress >= 0.55) {
 						domeMorph = Math.max(0, 1 - (progress - 0.55) / 0.06);
 					}
 				}
 				earthMaterial.uniforms.uDomeMorphProgress.value = domeMorph;
 
-				// Sweep angle rotation when radar is active
-				if (radarMorph > 0) {
+				// Sweep angle rotation when radar is active, only when scrolling down
+				if (radarMorph > 0 && scrollingDown) {
 					earthMaterial.uniforms.uSweepAngle.value += 0.03;
 				}
 
 				// Pull camera back during bridge morph so full model is visible
-				const targetZ = 5 + domeMorph * 9; // 5 → 14 during bridge
+				const targetZ = 5 + domeMorph * 450; // 5 → 455 during bridge
 				earthCamera.position.z += (targetZ - earthCamera.position.z) * 0.15;
+
+				// Shift camera to look at bottom-left during bridge morph
+				const targetX = domeMorph * -50; // slight offset so bridge is roughly centered
+				const targetY = domeMorph * 20; // move camera slightly up for bridge
+				earthCamera.position.x += (targetX - earthCamera.position.x) * 0.15;
+				earthCamera.position.y += (targetY - earthCamera.position.y) * 0.15;
 
 				// Un-tilt for radar and tower (both should stand upright)
 				const baseTilt = -23.4 * Math.PI / 180;
