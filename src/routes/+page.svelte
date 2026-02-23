@@ -1212,7 +1212,7 @@ renderer.render(scene, camera);
 			<img src="/self_logo.png" alt="KEG" class="h-6 w-auto md:h-8" />
 			<a href="#about" class="nav-link hidden text-[11px] font-light tracking-[0.3em] uppercase transition-colors duration-300 md:inline">About</a>
 			<a href="#capabilities" class="nav-link hidden text-[11px] font-light tracking-[0.3em] uppercase transition-colors duration-300 md:inline">Capabilities</a>
-			<a href="#investments" class="nav-link hidden text-[11px] font-light tracking-[0.3em] uppercase transition-colors duration-300 md:inline">Investments</a>
+			<a href="#cap-investments" class="nav-link hidden text-[11px] font-light tracking-[0.3em] uppercase transition-colors duration-300 md:inline">Investments</a>
 			<a href="#ethos" class="nav-link hidden text-[11px] font-light tracking-[0.3em] uppercase transition-colors duration-300 md:inline">Ethos</a>
 			<a href="#contact" class="nav-link hidden text-[11px] font-light tracking-[0.3em] uppercase transition-colors duration-300 md:inline">Contact</a>
 			<button
@@ -1333,7 +1333,7 @@ renderer.render(scene, camera);
 					{ title: 'Defense Technology', desc: 'Advanced security and intelligence solutions for government agencies and special forces.', num: '01' },
 					{ title: 'Infrastructure', desc: 'Future-ready systems built to endure environmental and operational challenges.', num: '02' },
 					{ title: 'Investments', desc: 'Capital aligned with purpose, industrial growth, and long-term national stability.', num: '03' },
-					{ title: 'Energy', desc: 'Power generation, renewables, and sustainable transition solutions for the future.', num: '04' }
+					{ title: 'Energy & Mining', desc: 'Power generation, mining, and sustainable transition solutions for the future.', num: '04' }
 				] as item}
 					<div class="expertise-card group relative flex-shrink-0 w-[75vw] overflow-hidden border border-slate-200 bg-white px-12 py-20 shadow-sm transition-all duration-500 hover:border-slate-300 hover:shadow-lg md:w-[40vw] md:py-24 lg:w-[30vw]">
 						<span class="expertise-num mb-8 block text-xs font-light tracking-[0.3em] text-slate-400">{item.num}</span>
@@ -1551,7 +1551,7 @@ renderer.render(scene, camera);
 						<span class="flex h-12 w-12 items-center justify-center border border-slate-400 text-lg font-extralight text-slate-500">04</span>
 						<div class="cap-line h-px flex-1 bg-gradient-to-r from-slate-400 to-transparent"></div>
 					</div>
-					<h3 class="cap-anim mb-6 text-5xl font-extralight leading-[1.2] text-slate-800 md:text-6xl">Energy & Renewables</h3>
+					<h3 class="cap-anim mb-6 text-5xl font-extralight leading-[1.2] text-slate-800 md:text-6xl">Energy & Mining</h3>
 					<p class="cap-anim text-2xl font-light leading-[1.8] text-slate-500 md:text-3xl">New power for a new era.</p>
 				</div>
 			</div>
