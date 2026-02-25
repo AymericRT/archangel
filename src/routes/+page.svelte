@@ -418,34 +418,42 @@ renderer.render(scene, camera);
 			}
 			uvAttr.needsUpdate = true;
 
-			// Compute flat-disc radar target positions for each vertex
+			// Compute flat-disc radar target positions — polar grid layout
 			const posAttr = earthGeometry.attributes.position;
 			const radarPositions = new Float32Array(posAttr.count * 3);
 			const radarMaxRadius = 3.0;
-			const numRings = 4;
-			const ringSpacing = radarMaxRadius / numRings;
-			const ringSnapThreshold = 0.15;
 
-			for (let i = 0; i < posAttr.count; i++) {
-				const x = posAttr.getX(i);
-				const y = posAttr.getY(i);
-				const z = posAttr.getZ(i);
-				const r = Math.sqrt(x * x + y * y + z * z);
+			// Build a polar grid: evenly spaced in radius and angle
+			const numRadialSteps = 30;
+			const numAngleSteps = 180;
+			const radiusStep = radarMaxRadius / numRadialSteps;
+			const angleStep = (2 * Math.PI) / numAngleSteps;
 
-				const theta = Math.atan2(z, x);
-				const phi = Math.acos(Math.max(-1, Math.min(1, y / r)));
-
-				// sqrt mapping for more uniform area distribution
-				let radarR = Math.sqrt(phi / Math.PI) * radarMaxRadius;
-
-				// Snap to nearest concentric ring
-				const nearestRing = Math.round(radarR / ringSpacing) * ringSpacing;
-				if (Math.abs(radarR - nearestRing) < ringSnapThreshold && nearestRing > 0 && nearestRing <= radarMaxRadius) {
-					radarR = nearestRing;
+			// Generate unique polar grid points
+			const radarGridMap = new Map<string, { r: number; a: number }>();
+			for (let ri = 1; ri <= numRadialSteps; ri++) {
+				const r = ri * radiusStep;
+				for (let ai = 0; ai < numAngleSteps; ai++) {
+					const a = ai * angleStep;
+					radarGridMap.set(`${ri},${ai}`, { r, a });
 				}
+			}
+			// Add crosshair radial lines (denser points along 0°, 90°, 180°, 270°)
+			const crosshairAngles = [0, Math.PI * 0.5, Math.PI, Math.PI * 1.5];
+			for (const ca of crosshairAngles) {
+				for (let ri = 1; ri <= numRadialSteps * 3; ri++) {
+					const r = (ri / (numRadialSteps * 3)) * radarMaxRadius;
+					const key = `ch_${ca.toFixed(2)}_${ri}`;
+					radarGridMap.set(key, { r, a: ca });
+				}
+			}
+			const radarGridPoints = Array.from(radarGridMap.values());
 
-				radarPositions[i * 3] = radarR * Math.cos(theta);
-				radarPositions[i * 3 + 1] = radarR * Math.sin(theta);
+			// Round-robin assign particles to grid points
+			for (let i = 0; i < posAttr.count; i++) {
+				const gp = radarGridPoints[i % radarGridPoints.length];
+				radarPositions[i * 3] = gp.r * Math.cos(gp.a);
+				radarPositions[i * 3 + 1] = gp.r * Math.sin(gp.a);
 				radarPositions[i * 3 + 2] = 0.0;
 			}
 
@@ -529,7 +537,8 @@ renderer.render(scene, camera);
 				const size = new THREE.Vector3();
 				bbox.getSize(size);
 				const maxDim = Math.max(size.x, size.y, size.z);
-				const scale = 1080.0 / maxDim;
+				const initScale = Math.min(window.innerWidth, 1440) / 1440;
+				const scale = (1080.0 / maxDim) * initScale;
 				console.log(`[Bridge OBJ] BBox min: [${bbox.min.x.toFixed(2)}, ${bbox.min.y.toFixed(2)}, ${bbox.min.z.toFixed(2)}]`);
 				console.log(`[Bridge OBJ] BBox max: [${bbox.max.x.toFixed(2)}, ${bbox.max.y.toFixed(2)}, ${bbox.max.z.toFixed(2)}]`);
 				console.log(`[Bridge OBJ] Size: [${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)}], maxDim: ${maxDim.toFixed(2)}, scale: ${scale.toFixed(4)}`);
@@ -558,25 +567,199 @@ renderer.render(scene, camera);
 					return Math.floor(seededRandom() * triTotal);
 				}
 
+				// Build area-weighted CDF for grid sampling
+				const bridgeCdf: number[] = [];
+				let bridgeCum = 0;
+				for (const tri of triangles) {
+					bridgeCum += tri.area;
+					bridgeCdf.push(bridgeCum);
+				}
+				for (let i = 0; i < bridgeCdf.length; i++) bridgeCdf[i] /= totalArea;
+
+				function pickTriangleAreaWeighted(): number {
+					const r = seededRandom();
+					let lo = 0, hi = bridgeCdf.length - 1;
+					while (lo < hi) {
+						const mid = (lo + hi) >> 1;
+						if (bridgeCdf[mid] < r) lo = mid + 1;
+						else hi = mid;
+					}
+					return lo;
+				}
+
+				// Oversample random points on mesh, snap to 3D grid, deduplicate
+				const bridgeGridStep = Math.sqrt(totalArea / posAttr.count) * 2.0;
+				const bridgeGridMap = new Map<string, THREE.Vector3>();
+				for (let i = 0; i < posAttr.count * 20; i++) {
+					const triIdx = pickTriangleAreaWeighted();
+					const pt = sampleTriangle(triangles[triIdx]);
+					pt.x = Math.round(pt.x / bridgeGridStep) * bridgeGridStep;
+					pt.y = Math.round(pt.y / bridgeGridStep) * bridgeGridStep;
+					pt.z = Math.round(pt.z / bridgeGridStep) * bridgeGridStep;
+					const key = `${pt.x.toFixed(4)},${pt.y.toFixed(4)},${pt.z.toFixed(4)}`;
+					if (!bridgeGridMap.has(key)) bridgeGridMap.set(key, pt.clone());
+				}
+				const bridgeGridPoints = Array.from(bridgeGridMap.values());
+				console.log(`[Bridge Grid] ${bridgeGridPoints.length} unique grid points from ${posAttr.count} particles`);
+
 				// Distribute all particles across the bridge surface
 				// Rotate bridge 45 deg around Y axis (green line)
 				const bridgeAngleY = Math.PI * 0.25;
 				const cosY = Math.cos(bridgeAngleY);
 				const sinY = Math.sin(bridgeAngleY);
 				for (let i = 0; i < posAttr.count; i++) {
-					const triIdx = pickTriangle();
-					const pt = sampleTriangle(triangles[triIdx]);
-					const noise = 0.5;
-					const x = (pt.x - center.x) * scale + (seededRandom() - 0.5) * noise;
-					const y = (pt.y - center.y) * scale + (seededRandom() - 0.5) * noise;
-					const z = (pt.z - center.z) * scale + (seededRandom() - 0.5) * noise;
-					bridgePositions[i * 3] = x * cosY + z * sinY + 260;
+					const pt = bridgeGridPoints[i % bridgeGridPoints.length];
+					const x = (pt.x - center.x) * scale;
+					const y = (pt.y - center.y) * scale;
+					const z = (pt.z - center.z) * scale;
+					bridgePositions[i * 3] = x * cosY + z * sinY + 260 * initScale;
 					bridgePositions[i * 3 + 1] = y;
 					bridgePositions[i * 3 + 2] = -x * sinY + z * cosY;
 				}
 
 				bridgeAttr.needsUpdate = true;
 				domeReady = true;
+			});
+
+			// Solar morph: initialize with sphere positions, then load OBJ
+			const solarPositions = new Float32Array(posAttr.count * 3);
+			for (let i = 0; i < posAttr.count; i++) {
+				solarPositions[i * 3] = posAttr.getX(i);
+				solarPositions[i * 3 + 1] = posAttr.getY(i);
+				solarPositions[i * 3 + 2] = posAttr.getZ(i);
+			}
+			const solarAttr = new THREE.BufferAttribute(solarPositions, 3);
+			earthGeometry.setAttribute('aSolarPos', solarAttr);
+
+			let solarReady = false;
+
+			// Load solar OBJ and map particles to its surface
+			const solarLoader = new OBJLoader();
+			solarLoader.load('/solar.obj', (obj) => {
+				const triangles: { a: THREE.Vector3; b: THREE.Vector3; c: THREE.Vector3; area: number }[] = [];
+				let totalArea = 0;
+				const tempA = new THREE.Vector3();
+				const tempB = new THREE.Vector3();
+				const tempC = new THREE.Vector3();
+
+				obj.updateMatrixWorld(true);
+				obj.traverse((child) => {
+					if (!(child as THREE.Mesh).isMesh) return;
+					const mesh = child as THREE.Mesh;
+					const geo = mesh.geometry;
+					const pos = geo.attributes.position;
+					const idx = geo.index;
+					const matrix = mesh.matrixWorld;
+
+					const triCount = idx ? idx.count / 3 : pos.count / 3;
+					for (let t = 0; t < triCount; t++) {
+						const i0 = idx ? idx.getX(t * 3) : t * 3;
+						const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
+						const i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+
+						tempA.set(pos.getX(i0), pos.getY(i0), pos.getZ(i0)).applyMatrix4(matrix);
+						tempB.set(pos.getX(i1), pos.getY(i1), pos.getZ(i1)).applyMatrix4(matrix);
+						tempC.set(pos.getX(i2), pos.getY(i2), pos.getZ(i2)).applyMatrix4(matrix);
+
+						const ab = new THREE.Vector3().subVectors(tempB, tempA);
+						const ac = new THREE.Vector3().subVectors(tempC, tempA);
+						const area = ab.cross(ac).length() * 0.5;
+						if (area < 1e-8) continue;
+
+						triangles.push({
+							a: tempA.clone(), b: tempB.clone(), c: tempC.clone(), area
+						});
+						totalArea += area;
+					}
+				});
+				console.log(`[Solar OBJ] Total valid triangles: ${triangles.length}, total area: ${totalArea.toFixed(2)}`);
+
+				if (triangles.length === 0) { solarReady = true; return; }
+
+				// Build area-weighted CDF for even particle distribution
+				const cdf: number[] = [];
+				let cumulative = 0;
+				for (const tri of triangles) {
+					cumulative += tri.area;
+					cdf.push(cumulative);
+				}
+				for (let i = 0; i < cdf.length; i++) cdf[i] /= totalArea;
+
+				const bbox = new THREE.Box3();
+				for (const tri of triangles) {
+					bbox.expandByPoint(tri.a);
+					bbox.expandByPoint(tri.b);
+					bbox.expandByPoint(tri.c);
+				}
+				const center = new THREE.Vector3();
+				bbox.getCenter(center);
+				const size = new THREE.Vector3();
+				bbox.getSize(size);
+				const maxDim = Math.max(size.x, size.y, size.z);
+				const solarInitScale = Math.min(window.innerWidth, 1440) / 1440;
+				const scale = (360.0 / maxDim) * solarInitScale;
+
+				let seed = 137;
+				function seededRandom() {
+					seed = (seed * 16807 + 0) % 2147483647;
+					return (seed - 1) / 2147483646;
+				}
+
+				function sampleTriangle(tri: { a: THREE.Vector3; b: THREE.Vector3; c: THREE.Vector3 }) {
+					let u = seededRandom();
+					let v = seededRandom();
+					if (u + v > 1) { u = 1 - u; v = 1 - v; }
+					const w = 1 - u - v;
+					return new THREE.Vector3(
+						tri.a.x * w + tri.b.x * u + tri.c.x * v,
+						tri.a.y * w + tri.b.y * u + tri.c.y * v,
+						tri.a.z * w + tri.b.z * u + tri.c.z * v
+					);
+				}
+
+				// Area-weighted triangle picking via binary search on CDF
+				function pickTriangle(): number {
+					const r = seededRandom();
+					let lo = 0, hi = cdf.length - 1;
+					while (lo < hi) {
+						const mid = (lo + hi) >> 1;
+						if (cdf[mid] < r) lo = mid + 1;
+						else hi = mid;
+					}
+					return lo;
+				}
+
+				// Oversample random points on mesh, snap to 3D grid, deduplicate
+				const gridStep = Math.sqrt(totalArea / posAttr.count) * 1.3;
+				const gridMap = new Map<string, THREE.Vector3>();
+				for (let i = 0; i < posAttr.count * 4; i++) {
+					const triIdx = pickTriangle();
+					const pt = sampleTriangle(triangles[triIdx]);
+					pt.x = Math.round(pt.x / gridStep) * gridStep;
+					pt.y = Math.round(pt.y / gridStep) * gridStep;
+					pt.z = Math.round(pt.z / gridStep) * gridStep;
+					const key = `${pt.x.toFixed(4)},${pt.y.toFixed(4)},${pt.z.toFixed(4)}`;
+					if (!gridMap.has(key)) gridMap.set(key, pt.clone());
+				}
+				const gridPoints = Array.from(gridMap.values());
+				console.log(`[Solar Grid] ${gridPoints.length} unique grid points from ${posAttr.count} particles`);
+
+				const solarAngleY = -Math.PI * 0.35;
+				const cosY = Math.cos(solarAngleY);
+				const sinY = Math.sin(solarAngleY);
+				for (let i = 0; i < posAttr.count; i++) {
+					const pt = gridPoints[i % gridPoints.length];
+					const x = (pt.x - center.x) * scale;
+					const y = (pt.y - center.y) * scale;
+					const z = (pt.z - center.z) * scale;
+					solarPositions[i * 3] = x * cosY + z * sinY + 260 * solarInitScale;
+					solarPositions[i * 3 + 1] = y;
+					solarPositions[i * 3 + 2] = -x * sinY + z * cosY;
+				}
+
+				solarAttr.needsUpdate = true;
+				solarReady = true;
+				console.log(`[Solar OBJ] Particles mapped, scale: ${scale.toFixed(4)}`);
 			});
 
 			const earthMaterial = new THREE.ShaderMaterial({
@@ -590,11 +773,14 @@ renderer.render(scene, camera);
 					uColorProgress: { value: 0 },
 					uMorphProgress: { value: 1 },
 					uSweepAngle: { value: 0 },
-					uDomeMorphProgress: { value: 0 }
+					uDomeMorphProgress: { value: 0 },
+					uSolarMorphProgress: { value: 0 },
+					uScreenScale: { value: Math.min(window.innerWidth, 1440) / 1440 }
 				},
 				vertexShader: `
 					attribute vec3 aRadarPos;
 					attribute vec3 aDomePos;
+					attribute vec3 aSolarPos;
 					uniform sampler2D specMap;
 					uniform float uTime;
 					uniform float uActivity;
@@ -602,6 +788,8 @@ renderer.render(scene, camera);
 					uniform float uMouseHover;
 					uniform float uMorphProgress;
 					uniform float uDomeMorphProgress;
+					uniform float uSolarMorphProgress;
+					uniform float uScreenScale;
 					varying float vIsLand;
 					varying vec3 vNormal;
 					varying vec3 vViewDir;
@@ -610,6 +798,7 @@ renderer.render(scene, camera);
 					varying float vRadarRadius;
 					varying float vMorphProgress;
 					varying float vDomeMorphProgress;
+					varying float vSolarMorphProgress;
 
 					// Pseudo-random
 					float hash(float n) { return fract(sin(n) * 43758.5453); }
@@ -653,22 +842,48 @@ renderer.render(scene, camera);
 							// Combine scroll activity with mouse hover proximity
 							float activity = max(uActivity, mouseInfluence);
 							// Reduce wandering as any morph progresses
-							float anyMorph = max(uMorphProgress, uDomeMorphProgress);
+							float anyMorph = max(max(uMorphProgress, uDomeMorphProgress), uSolarMorphProgress);
 							pos += (tangent * dT + bitangent * dB) * activity * (1.0 - anyMorph);
 						}
 
-						// Chain morphs: globe → radar → dome
+						// Chain morphs: globe → radar → dome → solar
 						float radarT = smoothstep(0.0, 1.0, uMorphProgress);
 						float domeT = smoothstep(0.0, 1.0, uDomeMorphProgress);
+						float solarT = smoothstep(0.0, 1.0, uSolarMorphProgress);
 						vec3 finalPos = pos;
 						finalPos = mix(finalPos, aRadarPos, radarT);
 						finalPos = mix(finalPos, aDomePos, domeT);
+						finalPos = mix(finalPos, aSolarPos, solarT);
+
+						// Solar particle wandering — scroll-driven like globe
+						if (solarT > 0.01) {
+							float id = dot(aSolarPos, vec3(127.1, 311.7, 74.7));
+							float ph1 = hash(id) * 6.2831;
+							float ph2 = hash(id + 1.0) * 6.2831;
+							float sp1 = 0.3 + hash(id + 2.0) * 0.7;
+							float sp2 = 0.3 + hash(id + 3.0) * 0.7;
+							float sp3 = 0.2 + hash(id + 4.0) * 0.5;
+							float sp4 = 0.2 + hash(id + 5.0) * 0.5;
+							float t = uTime;
+							float sdT = sin(t * sp1 + ph1) * 3.0
+								+ sin(t * sp3 * 1.7 + ph2 * 2.0) * 1.8
+								+ sin(t * sp1 * 2.3 + ph1 * 0.5) * 1.2;
+							float sdB = cos(t * sp2 + ph2) * 3.0
+								+ cos(t * sp4 * 1.9 + ph1 * 1.5) * 1.8
+								+ cos(t * sp2 * 2.1 + ph2 * 0.7) * 1.2;
+							vec3 sn = normalize(aSolarPos);
+							vec3 sup = abs(sn.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+							vec3 stan = normalize(cross(sup, sn));
+							vec3 sbit = cross(sn, stan);
+							finalPos += (stan * sdT + sbit * sdB) * solarT * uActivity;
+						}
 
 						// Pass info to fragment shader
 						vRadarAngle = atan(aRadarPos.y, aRadarPos.x);
 						vRadarRadius = length(aRadarPos.xy);
 						vMorphProgress = uMorphProgress;
 						vDomeMorphProgress = uDomeMorphProgress;
+						vSolarMorphProgress = uSolarMorphProgress;
 
 						vNormal = normalize(normalMatrix * normal);
 						vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
@@ -678,11 +893,13 @@ renderer.render(scene, camera);
 						float depthFactor = smoothstep(2.0, 8.0, vDepth);
 						float size = mix(0.15, 0.6, depthFactor);
 						float globeSize = vIsLand > 0.3 ? size * (30.0 / -mvPosition.z) : 0.0;
-						// Radar and bridge show ALL particles, not just land
-						float radarSize = 0.3 * (30.0 / -mvPosition.z);
-						float domeSize = 0.2 * (30.0 / -mvPosition.z);
+						// Radar, bridge, and solar show ALL particles, not just land
+						float radarSize = 2.0 * uScreenScale;
+						float domeSize = 2.0 * uScreenScale;
+						float solarSize = 1.5 * uScreenScale;
 						float morphedSize = mix(globeSize, radarSize, radarT);
-						gl_PointSize = mix(morphedSize, domeSize, domeT);
+						morphedSize = mix(morphedSize, domeSize, domeT);
+						gl_PointSize = mix(morphedSize, solarSize, solarT);
 						gl_Position = projectionMatrix * mvPosition;
 					}
 				`,
@@ -690,6 +907,7 @@ renderer.render(scene, camera);
 					uniform float uColorProgress;
 					uniform float uMorphProgress;
 					uniform float uDomeMorphProgress;
+					uniform float uSolarMorphProgress;
 					uniform float uSweepAngle;
 					uniform float uTime;
 					varying float vIsLand;
@@ -700,8 +918,9 @@ renderer.render(scene, camera);
 					varying float vRadarRadius;
 					varying float vMorphProgress;
 					varying float vDomeMorphProgress;
+					varying float vSolarMorphProgress;
 					void main() {
-						float anyMorphF = max(vMorphProgress, vDomeMorphProgress);
+						float anyMorphF = max(max(vMorphProgress, vDomeMorphProgress), vSolarMorphProgress);
 						if (vIsLand < 0.3 && anyMorphF < 0.01) discard;
 						float d = length(gl_PointCoord - 0.5) * 2.0;
 						if (d > 1.0) discard;
@@ -719,33 +938,41 @@ renderer.render(scene, camera);
 						float edge = mix(0.2, 0.8, depthFactor);
 						float alpha = smoothstep(1.0, edge, d) * mix(0.9, 0.3, depthFactor);
 
-						// Radar overlay
+						// Radar overlay — military PPI display
 						float morphT = smoothstep(0.0, 1.0, vMorphProgress);
 						if (morphT > 0.01) {
-							vec3 radarGreen = vec3(0.1, 0.9, 0.3);
-							vec3 radarDim = vec3(0.04, 0.25, 0.08);
+							vec3 radarGreen = vec3(0.0, 1.0, 0.3);
+							vec3 radarDim = vec3(0.01, 0.08, 0.02);
 
-							// Concentric ring brightening
+							// Crisp concentric range rings
 							float radarMaxR = 3.0;
 							float ringSpacing = radarMaxR / 4.0;
 							float ringDist = mod(vRadarRadius + 0.001, ringSpacing);
-							float onRing = 1.0 - smoothstep(0.0, 0.1, min(ringDist, ringSpacing - ringDist));
+							float onRing = 1.0 - smoothstep(0.0, 0.04, min(ringDist, ringSpacing - ringDist));
 
-							// Sweep line with trailing afterglow
+							// Crosshair lines (cardinal directions)
+							float absAngle = abs(vRadarAngle);
+							float nearCross = min(min(absAngle, abs(absAngle - 1.5708)), min(abs(absAngle - 3.14159), abs(absAngle - 4.71239)));
+							float onCross = 1.0 - smoothstep(0.0, 0.03, nearCross);
+
+							// Sweep line with phosphor decay trail
 							float angleDiff = vRadarAngle - uSweepAngle;
 							angleDiff = mod(angleDiff + 3.14159, 6.28318) - 3.14159;
-							float sweep = smoothstep(-0.8, 0.0, angleDiff) * smoothstep(0.03, 0.0, angleDiff);
-							float trail = smoothstep(-2.0, 0.0, angleDiff) * smoothstep(0.03, 0.0, angleDiff) * 0.25;
+							float sweep = smoothstep(-0.5, 0.0, angleDiff) * smoothstep(0.02, 0.0, angleDiff);
+							float trail = smoothstep(-2.5, 0.0, angleDiff) * smoothstep(0.02, 0.0, angleDiff) * 0.4;
+							// Phosphor decay — brighter near sweep, fades behind
+							float phosphor = exp(angleDiff * 1.5) * step(angleDiff, 0.0) * 0.3;
 
 							// Compose radar color
 							vec3 radarCol = radarDim;
-							radarCol += radarGreen * onRing * 0.5;
-							radarCol += radarGreen * (sweep + trail);
+							radarCol += radarGreen * onRing * 0.4;
+							radarCol += radarGreen * onCross * 0.2;
+							radarCol += radarGreen * (sweep * 1.5 + trail + phosphor);
 
 							col = mix(col, radarCol, morphT);
 
 							// Crisper alpha in radar mode
-							float radarAlpha = smoothstep(1.0, 0.3, d) * 0.85;
+							float radarAlpha = smoothstep(1.0, 0.2, d) * 0.9;
 							alpha = mix(alpha, radarAlpha, morphT);
 						}
 
@@ -769,6 +996,25 @@ renderer.render(scene, camera);
 
 							float bridgeAlpha = smoothstep(1.0, 0.2, d) * 0.9;
 							alpha = mix(alpha, bridgeAlpha, domeT);
+						}
+
+						// Solar overlay — same light blue as globe particles
+						float solarT = smoothstep(0.0, 1.0, vSolarMorphProgress);
+						if (solarT > 0.01) {
+							vec3 solarBlue = vec3(0.55, 0.75, 0.95);
+							vec3 solarDim = vec3(0.1, 0.15, 0.25);
+
+							float shimmer = sin(uTime * 1.5 + vNormal.y * 8.0) * 0.15 + 0.85;
+							float solarFresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), 2.0);
+
+							vec3 solarCol = solarDim * shimmer;
+							solarCol += solarBlue * solarFresnel * 0.5;
+							solarCol += solarBlue * 0.2;
+
+							col = mix(col, solarCol, solarT);
+
+							float solarAlpha = smoothstep(1.0, 0.2, d) * 0.9;
+							alpha = mix(alpha, solarAlpha, solarT);
 						}
 
 						gl_FragColor = vec4(col, alpha);
@@ -813,7 +1059,8 @@ renderer.render(scene, camera);
 				lastCapScroll = currentScroll;
 				const curRadarMorph = earthMaterial.uniforms.uMorphProgress.value;
 				const curDomeMorph = earthMaterial.uniforms.uDomeMorphProgress.value;
-				const anyMorph = Math.max(curRadarMorph, curDomeMorph);
+				const curSolarMorph = earthMaterial.uniforms.uSolarMorphProgress.value;
+				const anyMorph = Math.max(curRadarMorph, Math.max(curDomeMorph, curSolarMorph));
 				// Scroll-driven rotation only when scrolling down, only for globe
 				const downDelta = Math.max(0, delta);
 				const scrollingDown = downDelta > 0.5;
@@ -864,24 +1111,35 @@ renderer.render(scene, camera);
 				}
 				earthMaterial.uniforms.uDomeMorphProgress.value = domeMorph;
 
-				// Sweep angle rotation when radar is active, only when scrolling down
-				if (radarMorph > 0 && scrollingDown) {
+				// Solar morph: ramp in for Energy & Mining, hold through end
+				let solarMorph = 0;
+				if (solarReady) {
+					if (progress >= 0.80) {
+						solarMorph = Math.min(1, (progress - 0.80) / 0.10);
+					}
+				}
+				earthMaterial.uniforms.uSolarMorphProgress.value = solarMorph;
+
+				// Sweep angle rotation — always running when radar is active
+				if (radarMorph > 0) {
 					earthMaterial.uniforms.uSweepAngle.value += 0.03;
 				}
 
-				// Pull camera back during bridge morph so full model is visible
-				const targetZ = 5 + domeMorph * 450; // 5 → 455 during bridge
+				// Pull camera back during bridge/solar morph so full model is visible
+				const screenScale = Math.min(window.innerWidth, 1440) / 1440;
+				const objMorph = Math.max(domeMorph, solarMorph);
+				const targetZ = 5 + objMorph * 450 * screenScale;
 				earthCamera.position.z += (targetZ - earthCamera.position.z) * 0.15;
 
-				// Shift camera to look at bottom-left during bridge morph
-				const targetX = domeMorph * -50; // slight offset so bridge is roughly centered
-				const targetY = domeMorph * 20; // move camera slightly up for bridge
+				// Shift camera during bridge/solar morph
+				const targetX = (domeMorph * -50 + solarMorph * -50) * screenScale;
+				const targetY = (domeMorph * 20 + solarMorph * 80) * screenScale;
 				earthCamera.position.x += (targetX - earthCamera.position.x) * 0.15;
 				earthCamera.position.y += (targetY - earthCamera.position.y) * 0.15;
 
-				// Un-tilt for radar and tower (both should stand upright)
+				// Un-tilt for radar, bridge, and solar (should stand upright)
 				const baseTilt = -23.4 * Math.PI / 180;
-				const tiltFactor = Math.max(radarMorph, domeMorph);
+				const tiltFactor = Math.max(radarMorph, Math.max(domeMorph, solarMorph));
 				const targetTilt = baseTilt * (1.0 - tiltFactor);
 				earthGroup.rotation.z += (targetTilt - earthGroup.rotation.z) * 0.05;
 
@@ -934,6 +1192,7 @@ renderer.render(scene, camera);
 				capabilitiesRenderer.setSize(w, h);
 				earthCamera.aspect = w / h;
 				earthCamera.updateProjectionMatrix();
+				earthMaterial.uniforms.uScreenScale.value = Math.min(w, 1440) / 1440;
 			});
 			capResizeObserver.observe(document.body);
 		}
