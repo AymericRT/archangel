@@ -384,13 +384,16 @@ renderer.render(scene, camera);
 		if (capabilitiesCanvas && capSection) {
 			const earthScene = new THREE.Scene();
 			const earthCamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1.0, 5000);
-			earthCamera.position.set(0, 0, 5);
+			const capMobile = window.innerWidth < 768;
+			const capBaseX = capMobile ? 1.5 : 0;   // shift scene left on mobile
+			const capBaseZ = capMobile ? 7.5 : 5;    // pull back to shrink on mobile
+			earthCamera.position.set(capBaseX, 0, capBaseZ);
 			earthCamera.lookAt(0, 0, 0);
 
-			capabilitiesRenderer = new THREE.WebGLRenderer({ canvas: capabilitiesCanvas, antialias: true, alpha: false });
+			capabilitiesRenderer = new THREE.WebGLRenderer({ canvas: capabilitiesCanvas, antialias: true, alpha: capMobile });
 			capabilitiesRenderer.setSize(window.innerWidth, window.innerHeight);
 			capabilitiesRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-			capabilitiesRenderer.setClearColor(0x0f172a, 1);
+			capabilitiesRenderer.setClearColor(0x0f172a, capMobile ? 0 : 1);
 			capabilitiesRenderer.toneMapping = THREE.ACESFilmicToneMapping;
 			capabilitiesRenderer.toneMappingExposure = 2.0;
 
@@ -537,7 +540,7 @@ renderer.render(scene, camera);
 				const size = new THREE.Vector3();
 				bbox.getSize(size);
 				const maxDim = Math.max(size.x, size.y, size.z);
-				const initScale = Math.min(window.innerWidth, 1440) / 1440;
+				const initScale = Math.max(0.5, Math.min(window.innerWidth, 1440) / 1440);
 				const scale = (1080.0 / maxDim) * initScale;
 				console.log(`[Bridge OBJ] BBox min: [${bbox.min.x.toFixed(2)}, ${bbox.min.y.toFixed(2)}, ${bbox.min.z.toFixed(2)}]`);
 				console.log(`[Bridge OBJ] BBox max: [${bbox.max.x.toFixed(2)}, ${bbox.max.y.toFixed(2)}, ${bbox.max.z.toFixed(2)}]`);
@@ -603,8 +606,8 @@ renderer.render(scene, camera);
 				console.log(`[Bridge Grid] ${bridgeGridPoints.length} unique grid points from ${posAttr.count} particles`);
 
 				// Distribute all particles across the bridge surface
-				// Rotate bridge 45 deg around Y axis (green line)
-				const bridgeAngleY = Math.PI * 0.25;
+				// Rotate bridge around Y axis (80° on mobile, 45° on desktop)
+				const bridgeAngleY = capMobile ? Math.PI * (80 / 180) : Math.PI * 0.25;
 				const cosY = Math.cos(bridgeAngleY);
 				const sinY = Math.sin(bridgeAngleY);
 				for (let i = 0; i < posAttr.count; i++) {
@@ -612,7 +615,7 @@ renderer.render(scene, camera);
 					const x = (pt.x - center.x) * scale;
 					const y = (pt.y - center.y) * scale;
 					const z = (pt.z - center.z) * scale;
-					bridgePositions[i * 3] = x * cosY + z * sinY + 260 * initScale;
+					bridgePositions[i * 3] = x * cosY + z * sinY + (capMobile ? 0 : 260) * initScale;
 					bridgePositions[i * 3 + 1] = y;
 					bridgePositions[i * 3 + 2] = -x * sinY + z * cosY;
 				}
@@ -696,7 +699,7 @@ renderer.render(scene, camera);
 				const size = new THREE.Vector3();
 				bbox.getSize(size);
 				const maxDim = Math.max(size.x, size.y, size.z);
-				const solarInitScale = Math.min(window.innerWidth, 1440) / 1440;
+				const solarInitScale = Math.max(0.5, Math.min(window.innerWidth, 1440) / 1440);
 				const scale = (360.0 / maxDim) * solarInitScale;
 
 				let seed = 137;
@@ -752,7 +755,7 @@ renderer.render(scene, camera);
 					const x = (pt.x - center.x) * scale;
 					const y = (pt.y - center.y) * scale;
 					const z = (pt.z - center.z) * scale;
-					solarPositions[i * 3] = x * cosY + z * sinY + 260 * solarInitScale;
+					solarPositions[i * 3] = x * cosY + z * sinY + (capMobile ? 0 : 260) * solarInitScale;
 					solarPositions[i * 3 + 1] = y;
 					solarPositions[i * 3 + 2] = -x * sinY + z * cosY;
 				}
@@ -775,7 +778,7 @@ renderer.render(scene, camera);
 					uSweepAngle: { value: 0 },
 					uDomeMorphProgress: { value: 0 },
 					uSolarMorphProgress: { value: 0 },
-					uScreenScale: { value: Math.min(window.innerWidth, 1440) / 1440 }
+					uScreenScale: { value: Math.max(0.5, Math.min(window.innerWidth, 1440) / 1440) * Math.min(window.devicePixelRatio, 2) }
 				},
 				vertexShader: `
 					attribute vec3 aRadarPos;
@@ -1126,13 +1129,14 @@ renderer.render(scene, camera);
 				}
 
 				// Pull camera back during bridge/solar morph so full model is visible
-				const screenScale = Math.min(window.innerWidth, 1440) / 1440;
+				const screenScale = Math.max(0.5, Math.min(window.innerWidth, 1440) / 1440);
 				const objMorph = Math.max(domeMorph, solarMorph);
-				const targetZ = 5 + objMorph * 450 * screenScale;
+				const targetZ = capBaseZ + objMorph * 450 * screenScale;
 				earthCamera.position.z += (targetZ - earthCamera.position.z) * 0.15;
 
 				// Shift camera during bridge/solar morph
-				const targetX = (domeMorph * -50 + solarMorph * -50) * screenScale;
+				const morphShiftX = capMobile ? 0 : -50;
+				const targetX = capBaseX + (domeMorph * morphShiftX + solarMorph * morphShiftX) * screenScale;
 				const targetY = (domeMorph * 20 + solarMorph * 80) * screenScale;
 				earthCamera.position.x += (targetX - earthCamera.position.x) * 0.15;
 				earthCamera.position.y += (targetY - earthCamera.position.y) * 0.15;
@@ -1179,7 +1183,13 @@ renderer.render(scene, camera);
 						break;
 					}
 				}
-				capabilitiesRenderer.setClearColor(bgColor, 1);
+				capabilitiesRenderer.setClearColor(bgColor, capMobile ? 0 : 1);
+
+				// On mobile, apply the same bg transition to the content overlay
+				if (capMobile) {
+					const overlay = document.getElementById('cap-content-overlay');
+					if (overlay) overlay.style.backgroundColor = `#${bgColor.getHexString()}`;
+				}
 
 				capabilitiesRenderer.render(earthScene, earthCamera);
 			}
@@ -1192,7 +1202,7 @@ renderer.render(scene, camera);
 				capabilitiesRenderer.setSize(w, h);
 				earthCamera.aspect = w / h;
 				earthCamera.updateProjectionMatrix();
-				earthMaterial.uniforms.uScreenScale.value = Math.min(w, 1440) / 1440;
+				earthMaterial.uniforms.uScreenScale.value = Math.max(0.5, Math.min(w, 1440) / 1440) * Math.min(window.devicePixelRatio, 2);
 			});
 			capResizeObserver.observe(document.body);
 		}
@@ -1319,6 +1329,8 @@ renderer.render(scene, camera);
 			}
 
 			// ============ THEATRICAL CAPABILITY REVEALS ============
+			const isMobile = window.innerWidth < 768;
+
 			['cap-defense', 'cap-infra', 'cap-investments', 'cap-energy'].forEach((id) => {
 				const section = document.getElementById(id);
 				if (!section) return;
@@ -1327,32 +1339,35 @@ renderer.render(scene, camera);
 				const lines = section.querySelectorAll('.cap-line');
 				const items = section.querySelectorAll('.cap-item');
 
-				// Pin each subsection and scrub content up/down with scroll
-				const content = section.querySelector(':scope > div') as HTMLElement;
-				if (content) {
-					gsap.to(content, {
-						y: -120,
-						ease: 'none',
-						scrollTrigger: {
-							trigger: section,
-							start: 'top top',
-							end: `+=${window.innerHeight * 0.6}`,
-							pin: true,
-							pinSpacing: true,
-							scrub: true,
-						}
-					});
+				// Only pin on desktop — pinning breaks mobile layout inside the
+				// sticky-canvas overlay and causes content to become invisible
+				if (!isMobile) {
+					const content = section.querySelector(':scope > div') as HTMLElement;
+					if (content) {
+						gsap.to(content, {
+							y: -120,
+							ease: 'none',
+							scrollTrigger: {
+								trigger: section,
+								start: 'top top',
+								end: `+=${window.innerHeight * 0.6}`,
+								pin: true,
+								pinSpacing: true,
+								scrub: true,
+							}
+						});
+					}
 				}
 
-				// Set initial states
-				gsap.set(anims, { y: 60, opacity: 0 });
+				// Set initial states — smaller offsets on mobile to avoid clipping
+				gsap.set(anims, { y: isMobile ? 30 : 60, opacity: 0 });
 				gsap.set(lines, { width: 0 });
-				gsap.set(items, { y: 80, opacity: 0 });
+				gsap.set(items, { y: isMobile ? 40 : 80, opacity: 0 });
 
 				const tl = gsap.timeline({
 					scrollTrigger: {
 						trigger: section,
-						start: 'top 70%',
+						start: isMobile ? 'top 85%' : 'top 70%',
 						once: true,
 					}
 				});
@@ -1660,13 +1675,13 @@ renderer.render(scene, camera);
 
 	<!-- ==================== CAPABILITIES WRAPPER WITH GLOBE ==================== -->
 	<div id="capabilities-wrapper" class="relative">
-		<!-- Sticky earth canvas background -->
-		<div class="sticky top-0 z-[18] h-screen w-full">
+		<!-- Sticky earth canvas -->
+		<div class="pointer-events-none sticky top-0 z-[22] h-screen w-full md:pointer-events-auto md:z-[18]">
 			<canvas bind:this={capabilitiesCanvas} class="h-full w-full"></canvas>
 		</div>
 
-		<!-- Content overlay -->
-		<div class="relative z-[20]" style="margin-top: -100vh;">
+		<!-- Content -->
+		<div id="cap-content-overlay" class="relative z-[20] pb-[1px]" style="margin-top: -100vh;">
 
 	<!-- ==================== CAPABILITIES INTRO ==================== -->
 	<section id="capabilities" class="relative overflow-hidden bg-transparent pt-20 pb-8">
@@ -1719,7 +1734,7 @@ renderer.render(scene, camera);
 
 
 	<!-- ==================== INFRASTRUCTURE SECTION ==================== -->
-	<section id="cap-infra" class="relative overflow-hidden">
+	<section id="cap-infra" class="relative md:overflow-hidden">
 		<div class="relative mx-auto flex min-h-screen max-w-6xl items-center px-8 py-32">
 			<div class="grid w-full gap-12 lg:grid-cols-12 lg:gap-16">
 				<!-- Items -->
@@ -1801,7 +1816,7 @@ renderer.render(scene, camera);
 
 
 	<!-- ==================== ENERGY SECTION ==================== -->
-	<section id="cap-energy" class="relative overflow-hidden">
+	<section id="cap-energy" class="relative min-h-screen md:overflow-hidden">
 		<div class="relative mx-auto max-w-6xl px-8 py-32">
 			<!-- Header -->
 			<div class="mb-20 max-w-3xl">
