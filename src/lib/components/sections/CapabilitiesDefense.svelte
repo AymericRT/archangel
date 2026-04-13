@@ -4,9 +4,11 @@
 	const { heading, lead, items } = capabilities.defense;
 </script>
 
-<section id="cap-defense">
+<section id="capabilities">
 	<div class="section section-rule mx-auto max-w-6xl px-8">
-		<div class="mb-16 max-w-3xl" use:reveal>
+		<h2 class="t-section mb-20 text-slate-900 dark:text-neutral-50" use:reveal>{capabilities.intro.heading}</h2>
+
+		<div id="cap-defense" class="mb-14 max-w-3xl" use:reveal={{ delay: 120 }}>
 			<h3 class="t-subsection mb-6 text-slate-900 dark:text-neutral-50">{heading}</h3>
 			<p class="t-lead">{lead}</p>
 		</div>

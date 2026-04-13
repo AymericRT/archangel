@@ -113,7 +113,6 @@ export const nav = {
 	links: [
 		{ label: 'About', href: '#about' },
 		{ label: 'Capabilities', href: '#capabilities' },
-		{ label: 'Investments', href: '#cap-investments' },
 		{ label: 'Ethos', href: '#ethos' },
 		{ label: 'Contact', href: '#contact' }
 	]

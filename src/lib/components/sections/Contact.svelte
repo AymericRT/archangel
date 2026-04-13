@@ -2,10 +2,6 @@
 	import { contact } from '$lib/content';
 	import { reveal } from '$lib/actions/reveal';
 
-	let magneticBtn: HTMLElement;
-	let btnX = $state(0);
-	let btnY = $state(0);
-
 	let formName = $state('');
 	let formEmail = $state('');
 	let formCompany = $state('');
@@ -40,24 +36,9 @@
 		}
 	}
 
-	function handleMagneticMove(e: MouseEvent) {
-		if (!magneticBtn) return;
-		const rect = magneticBtn.getBoundingClientRect();
-		const x = e.clientX - rect.left - rect.width / 2;
-		const y = e.clientY - rect.top - rect.height / 2;
-		btnX = x * 0.3;
-		btnY = y * 0.3;
-	}
-
-	function handleMagneticLeave() {
-		btnX = 0;
-		btnY = 0;
-	}
-
-	const inputBase =
-		'peer w-full bg-transparent pb-3 pt-6 text-base font-light text-slate-900 dark:text-neutral-50 outline-none transition-colors duration-300 placeholder:text-transparent border-b border-slate-200 dark:border-neutral-800 focus:border-slate-900 dark:focus:border-neutral-50';
-	const labelBase =
-		'pointer-events-none absolute left-0 top-6 text-base font-light text-slate-500 dark:text-neutral-500 transition-all duration-300 peer-not-placeholder-shown:-translate-y-5 peer-not-placeholder-shown:text-[0.7rem] peer-not-placeholder-shown:tracking-[0.32em] peer-not-placeholder-shown:uppercase peer-not-placeholder-shown:text-slate-500 peer-focus:-translate-y-5 peer-focus:text-[0.7rem] peer-focus:tracking-[0.32em] peer-focus:uppercase peer-focus:text-slate-900 dark:peer-focus:text-neutral-50';
+	// Minimal underlined input — no frame, no label above, no float-label.
+	const field =
+		'block w-full border-0 border-b border-slate-200 bg-transparent py-5 text-lg font-light text-slate-900 outline-none transition-[border-color,color] duration-300 placeholder:font-light placeholder:text-slate-400 focus:border-slate-900 dark:border-neutral-800 dark:text-neutral-50 dark:placeholder:text-neutral-600 dark:focus:border-neutral-50';
 </script>
 
 <section id="contact" class="overflow-hidden">
@@ -75,67 +56,67 @@
 			</p>
 		</div>
 
-		<div class="mx-auto max-w-3xl" use:reveal={{ delay: 180 }}>
-			<form onsubmit={handleFormSubmit} class="space-y-10">
-				<div class="grid gap-10 md:grid-cols-2">
-					<div class="relative">
-						<input id="contact-name" type="text" bind:value={formName} required placeholder=" " class={inputBase} />
-						<label for="contact-name" class={labelBase}>Full Name</label>
+		<div class="mx-auto max-w-2xl" use:reveal={{ delay: 180 }}>
+			<form onsubmit={handleFormSubmit} class="space-y-2">
+				<div class="grid gap-x-10 sm:grid-cols-2">
+					<div>
+						<label for="contact-name" class="sr-only">Full name</label>
+						<input id="contact-name" type="text" bind:value={formName} required placeholder="Full name" autocomplete="name" class={field} />
 					</div>
-					<div class="relative">
-						<input id="contact-email" type="email" bind:value={formEmail} required placeholder=" " class={inputBase} />
-						<label for="contact-email" class={labelBase}>Email Address</label>
-					</div>
-				</div>
-
-				<div class="grid gap-10 md:grid-cols-2">
-					<div class="relative">
-						<input id="contact-company" type="text" bind:value={formCompany} placeholder=" " class={inputBase} />
-						<label for="contact-company" class={labelBase}>Company / Organization</label>
-					</div>
-					<div class="relative">
-						<input id="contact-subject" type="text" bind:value={formSubject} required placeholder=" " class={inputBase} />
-						<label for="contact-subject" class={labelBase}>Subject</label>
+					<div>
+						<label for="contact-email" class="sr-only">Email</label>
+						<input id="contact-email" type="email" bind:value={formEmail} required placeholder="Email" autocomplete="email" class={field} />
 					</div>
 				</div>
 
-				<div class="relative">
-					<textarea id="contact-message" bind:value={formMessage} required rows="5" placeholder=" " class="{inputBase} resize-none"></textarea>
-					<label for="contact-message" class={labelBase}>Your Message</label>
+				<div>
+					<label for="contact-company" class="sr-only">Company</label>
+					<input id="contact-company" type="text" bind:value={formCompany} placeholder="Company" autocomplete="organization" class={field} />
 				</div>
 
-				<div class="flex flex-col-reverse items-center gap-6 pt-6 md:flex-row md:justify-between">
-					<p class="t-eyebrow">
+				<div>
+					<label for="contact-subject" class="sr-only">Subject</label>
+					<input id="contact-subject" type="text" bind:value={formSubject} required placeholder="Subject" class={field} />
+				</div>
+
+				<div>
+					<label for="contact-message" class="sr-only">Message</label>
+					<textarea id="contact-message" bind:value={formMessage} required rows="4" placeholder="Your message" class="{field} resize-none"></textarea>
+				</div>
+
+				<div class="flex flex-col-reverse items-center gap-6 pt-10 md:flex-row md:justify-between">
+					<p
+						class="t-eyebrow min-h-[1em]"
+						class:text-slate-900={formStatus === 'sent'}
+						class:dark:text-neutral-50={formStatus === 'sent'}
+					>
 						{#if formStatus === 'sent'}
-							Message sent successfully.
+							Message sent
 						{:else if formStatus === 'error'}
-							Something went wrong. Please try again.
+							Something went wrong — please try again
+						{:else}
+							&nbsp;
 						{/if}
 					</p>
-					<div
-						bind:this={magneticBtn}
-						class="relative inline-block"
-						onmousemove={handleMagneticMove}
-						onmouseleave={handleMagneticLeave}
-						role="presentation"
+					<button
+						type="submit"
+						disabled={formStatus === 'sending'}
+						class="group relative inline-flex items-center justify-center overflow-hidden border border-slate-900 px-12 py-4 text-[11px] font-medium tracking-[0.32em] text-slate-900 uppercase transition-colors duration-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-50 dark:text-neutral-50 dark:hover:text-black"
 					>
-						<button
-							type="submit"
-							disabled={formStatus === 'sending'}
-							class="magnetic-btn group relative inline-flex items-center justify-center overflow-hidden border border-slate-900 bg-slate-900 px-14 py-5 text-[11px] font-medium tracking-[0.32em] text-white uppercase transition-all duration-300 hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-50 dark:bg-neutral-50 dark:text-black dark:hover:bg-white"
-							style="transform: translate({btnX}px, {btnY}px)"
-						>
-							<span class="relative z-10">
-								{#if formStatus === 'sending'}
-									Sending…
-								{:else if formStatus === 'sent'}
-									Sent
-								{:else}
-									Send Message
-								{/if}
-							</span>
-						</button>
-					</div>
+						<span class="relative z-10">
+							{#if formStatus === 'sending'}
+								Sending…
+							{:else if formStatus === 'sent'}
+								Sent
+							{:else}
+								Send
+							{/if}
+						</span>
+						<span
+							aria-hidden="true"
+							class="absolute inset-0 -translate-y-full bg-slate-900 transition-transform duration-500 group-hover:translate-y-0 dark:bg-neutral-50"
+						></span>
+					</button>
 				</div>
 			</form>
 		</div>

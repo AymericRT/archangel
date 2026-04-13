@@ -3,10 +3,8 @@
 
 	import Navbar from '$lib/components/Navbar.svelte';
 	import Hero from '$lib/components/sections/Hero.svelte';
-	import Statement from '$lib/components/sections/Statement.svelte';
-	import Expertise from '$lib/components/sections/Expertise.svelte';
+	import Homepage from '$lib/components/sections/Homepage.svelte';
 	import About from '$lib/components/sections/About.svelte';
-	import CapabilitiesIntro from '$lib/components/sections/CapabilitiesIntro.svelte';
 	import CapabilitiesDefense from '$lib/components/sections/CapabilitiesDefense.svelte';
 	import CapabilitiesInfra from '$lib/components/sections/CapabilitiesInfra.svelte';
 	import CapabilitiesInvestments from '$lib/components/sections/CapabilitiesInvestments.svelte';
@@ -55,13 +53,10 @@
 
 	<Hero {isLoaded} />
 
-	<Statement />
-
-	<Expertise />
+	<Homepage />
 
 	<About />
 
-	<CapabilitiesIntro />
 	<CapabilitiesDefense />
 	<CapabilitiesInfra />
 	<CapabilitiesInvestments />
