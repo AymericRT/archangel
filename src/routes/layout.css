@@ -2,6 +2,8 @@
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Base styles */
 html {
 	scroll-behavior: smooth;
@@ -10,10 +12,16 @@ html {
 }
 
 body {
-	background-color: #050810;
-	color: white;
+	background-color: #ffffff;
+	color: #1e293b;
 	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 	overflow-x: hidden;
+	transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+	background-color: #000000;
+	color: #f1f5f9;
 }
 
 /* Smooth will-change for animated elements */
@@ -49,4 +57,71 @@ button:focus-visible {
 /* Prevent layout shift during page load */
 html {
 	scrollbar-gutter: stable;
+}
+
+/* ==================== HERO ANIMATIONS ==================== */
+.loaded .hero-subtitle {
+	animation: slideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+}
+.loaded .hero-title {
+	animation: slideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+}
+.loaded .hero-subtitle-2 {
+	animation: slideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
+}
+.loaded .hero-tagline {
+	animation: slideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
+}
+
+@keyframes slideUp {
+	to { transform: translateY(0); opacity: 1; }
+}
+@keyframes fadeUp {
+	to { transform: translateY(0); opacity: 1; }
+}
+
+.scroll-indicator {
+	animation: scrollPulse 2.5s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+	0%, 100% { opacity: 0.4; transform: translateY(0); }
+	50% { opacity: 1; transform: translateY(5px); }
+}
+
+.text-gradient-light {
+	background: linear-gradient(135deg, rgb(30, 41, 59) 0%, rgb(71, 85, 105) 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+/* ==================== INVESTMENTS - Float animation ==================== */
+.float-card {
+	animation: float 6s ease-in-out infinite;
+}
+.float-card:nth-child(2) { animation-delay: -2s; }
+.float-card:nth-child(3) { animation-delay: -4s; }
+
+@keyframes float {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-10px); }
+}
+
+/* ==================== ENERGY - Pulse ring ==================== */
+.pulse-ring {
+	animation: pulseRing 2s ease-out infinite;
+}
+@keyframes pulseRing {
+	0% { transform: scale(1); opacity: 0.3; }
+	100% { transform: scale(1.5); opacity: 0; }
+}
+
+.magnetic-btn {
+	transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s, background-color 0.3s;
+}
+
+/* ==================== SELECTION ==================== */
+::selection {
+	background: rgba(100, 116, 139, 0.2);
+	color: rgb(30, 41, 59);
 }

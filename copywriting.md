@@ -28,19 +28,19 @@ We act as a leading turnkey solution provider, integrating various technologies 
 •	Tactical Response: Full-spectrum CBRNE (Chemical, Biological, Radiological, Nuclear, Explosive) detection vehicles and specialized riot control systems.
 •	Modernization: Retrofitting and upgrading critical defense platforms, including armored vehicles and air defense units, to extend operational relevance.
 •	Optics & Vision: Supply of advanced night vision systems and "future-proof" optical gear.
+•	Software Engineering: Full-lifecycle development—from design to implementation—creating secure, reliable systems for mission-critical operations.
 Sustainable Infrastructure & Engineering
 Building systems that endure.
 We advise governments and investors on resilient, future-ready infrastructure that balances economic growth with responsibility.
 •	Resilient Engineering: Design and development of infrastructure ecosystems capable of withstanding environmental and operational challenges.
 •	Mechanical Services: Precision fabrication, manufacturing, and assembly of complex components for large-scale industrial projects.
-•	Software Engineering: Full-lifecycle development—from design to implementation—creating secure, reliable systems for mission-critical operations.
 Strategic Investments
 Capital with a conscience.
 We channel capital toward long-term, responsible returns through public-private partnerships and governance-driven ventures.
 •	Industrial Localization: We invest directly in establishing local manufacturing facilities to ensure supply chain security and technology transfer.
 •	Systemic Transformation: Partnering with visionary enterprises to turn transformation into sustainable performance, aligning profitability with national purpose.
 •	Strategic Partnerships: Securing selective representation and building strong relationships with global business partners to bring world-class technologies to the local market.
-Energy & Renewables
+Energy & Mining
 New power for a new era.
 We are dedicated to maintaining energy reliability while supporting the transition toward sustainable sources.
 •	Power Generation: Comprehensive overhaul, maintenance, and parts supply for industrial turbines and power plants.
