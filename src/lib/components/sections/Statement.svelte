@@ -1,21 +1,22 @@
 <script lang="ts">
 	import { statement } from '$lib/content';
+	import { reveal } from '$lib/actions/reveal';
 </script>
 
 <section>
-	<div class="mx-auto max-w-6xl border-t border-slate-200 dark:border-neutral-800 px-8 py-24 md:py-32">
-		<div>
+	<div class="section section-rule mx-auto max-w-6xl px-8">
+		<div use:reveal>
 			{#each statement.lines as line, i}
 				<h2
-					class="text-4xl font-extralight leading-[1.2] tracking-tight md:text-5xl lg:text-6xl {i === 0
-						? 'text-slate-800 dark:text-neutral-100'
-						: 'mt-2 text-slate-600 dark:text-neutral-300'}"
+					class="t-section {i === 0
+						? 'text-slate-900 dark:text-neutral-50'
+						: 'mt-1.5 text-slate-500 dark:text-neutral-400'}"
 				>{line}</h2>
 			{/each}
 		</div>
 
-		<div class="mt-16 max-w-3xl">
-			<p class="text-lg font-light leading-[1.8] text-slate-600 dark:text-neutral-300 md:text-xl">
+		<div class="mt-16 max-w-3xl" use:reveal={{ delay: 180 }}>
+			<p class="t-lead">
 				{statement.body}
 			</p>
 		</div>

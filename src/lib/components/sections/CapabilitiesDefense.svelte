@@ -1,21 +1,25 @@
 <script lang="ts">
 	import { capabilities } from '$lib/content';
+	import { reveal } from '$lib/actions/reveal';
 	const { heading, lead, items } = capabilities.defense;
 </script>
 
 <section id="cap-defense">
-	<div class="mx-auto max-w-6xl border-t border-slate-200 dark:border-neutral-800 px-8 py-24 md:py-32">
-		<div class="mb-20 max-w-3xl">
-			<h3 class="cap-anim mb-6 text-3xl font-extralight leading-[1.3] text-slate-800 dark:text-neutral-100 md:text-4xl lg:text-5xl">{heading}</h3>
-			<p class="cap-anim text-lg font-light leading-[1.8] text-slate-600 dark:text-neutral-300 md:text-xl">{lead}</p>
+	<div class="section section-rule mx-auto max-w-6xl px-8">
+		<div class="mb-16 max-w-3xl" use:reveal>
+			<h3 class="t-subsection mb-6 text-slate-900 dark:text-neutral-50">{heading}</h3>
+			<p class="t-lead">{lead}</p>
 		</div>
 
 		<div class="space-y-0">
-			{#each items as item}
-				<div class="cap-item group border-t border-slate-200 dark:border-neutral-800 last:border-b">
-					<div class="py-8">
-						<h4 class="mb-2 text-xl font-extralight text-slate-800 dark:text-neutral-100 md:text-2xl">{item.title}</h4>
-						<p class="max-w-xl text-sm font-light leading-relaxed text-slate-500 dark:text-neutral-300 md:text-base">{item.desc}</p>
+			{#each items as item, i}
+				<div
+					class="cap-item group border-t border-slate-200 last:border-b dark:border-neutral-800"
+					use:reveal={{ delay: 60 * i }}
+				>
+					<div class="grid gap-y-2 py-7 md:grid-cols-12 md:gap-x-8 md:py-8">
+						<h4 class="t-card text-slate-900 dark:text-neutral-50 md:col-span-4">{item.title}</h4>
+						<p class="t-body max-w-2xl md:col-span-8">{item.desc}</p>
 					</div>
 				</div>
 			{/each}

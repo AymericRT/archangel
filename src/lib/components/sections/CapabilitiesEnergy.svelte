@@ -1,20 +1,24 @@
 <script lang="ts">
 	import { capabilities } from '$lib/content';
+	import { reveal } from '$lib/actions/reveal';
 	const { heading, lead, items } = capabilities.energy;
 </script>
 
 <section id="cap-energy" class="md:overflow-hidden">
-	<div class="mx-auto max-w-6xl border-t border-slate-200 dark:border-neutral-800 px-8 py-24 md:py-32">
-		<div class="mb-20 max-w-3xl">
-			<h3 class="cap-anim mb-6 text-3xl font-extralight leading-[1.2] text-slate-800 dark:text-neutral-100 md:text-4xl lg:text-5xl">{heading}</h3>
-			<p class="cap-anim text-lg font-light leading-[1.8] text-slate-500 dark:text-neutral-300 md:text-xl">{lead}</p>
+	<div class="section section-rule mx-auto max-w-6xl px-8">
+		<div class="mb-16 max-w-3xl" use:reveal>
+			<h3 class="t-subsection mb-6 text-slate-900 dark:text-neutral-50">{heading}</h3>
+			<p class="t-lead">{lead}</p>
 		</div>
 
-		<div class="grid gap-12 md:grid-cols-2">
-			{#each items as item}
-				<div class="cap-item group border-t border-slate-300 dark:border-neutral-700 pt-6 transition-colors duration-500 group-hover:border-slate-400">
-					<h4 class="mb-3 text-xl font-light text-slate-800 dark:text-neutral-100 transition-colors duration-300 group-hover:text-slate-700 md:text-2xl">{item.title}</h4>
-					<p class="text-sm font-light leading-relaxed text-slate-500 dark:text-neutral-300 md:text-base">{item.desc}</p>
+		<div class="grid gap-x-12 gap-y-10 sm:grid-cols-2">
+			{#each items as item, i}
+				<div
+					class="border-t border-slate-200 pt-6 dark:border-neutral-800"
+					use:reveal={{ delay: 70 * i }}
+				>
+					<h4 class="t-card mb-3 text-slate-900 dark:text-neutral-50">{item.title}</h4>
+					<p class="t-body">{item.desc}</p>
 				</div>
 			{/each}
 		</div>

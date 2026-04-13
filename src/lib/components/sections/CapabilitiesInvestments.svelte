@@ -1,21 +1,25 @@
 <script lang="ts">
 	import { capabilities } from '$lib/content';
+	import { reveal } from '$lib/actions/reveal';
 	const { heading, lead, items } = capabilities.investments;
 </script>
 
 <section id="cap-investments">
-	<div class="mx-auto max-w-6xl border-t border-slate-200 dark:border-neutral-800 px-8 py-24 md:py-32">
-		<div class="mb-20 max-w-3xl">
-			<h3 class="cap-anim mb-6 text-3xl font-extralight leading-[1.3] text-slate-800 dark:text-neutral-100 md:text-4xl lg:text-5xl">{heading}</h3>
-			<p class="cap-anim text-lg font-light leading-[1.8] text-slate-600 dark:text-neutral-300 md:text-xl">{lead}</p>
+	<div class="section section-rule mx-auto max-w-6xl px-8">
+		<div class="mb-16 max-w-3xl" use:reveal>
+			<h3 class="t-subsection mb-6 text-slate-900 dark:text-neutral-50">{heading}</h3>
+			<p class="t-lead">{lead}</p>
 		</div>
 
-		<div class="grid gap-8 md:grid-cols-3">
-			{#each items as item}
-				<div class="cap-item group overflow-hidden border border-slate-200 dark:border-neutral-800 bg-white dark:bg-black p-8 shadow-sm transition-all duration-500 hover:border-slate-300 hover:shadow-lg">
-					<h4 class="mb-4 text-xl font-light text-slate-800 dark:text-neutral-100 transition-colors duration-300 group-hover:text-slate-900 md:text-2xl">{item.title}</h4>
-					<p class="text-sm font-light leading-relaxed text-slate-500 dark:text-neutral-300 md:text-base">{item.desc}</p>
-					<div class="mt-6 h-px w-0 bg-gradient-to-r from-slate-500 to-transparent transition-all duration-700 group-hover:w-full"></div>
+		<div class="grid gap-px bg-slate-200 dark:bg-neutral-800 sm:grid-cols-2 lg:grid-cols-3">
+			{#each items as item, i}
+				<div
+					class="group relative bg-white p-8 transition-colors duration-500 dark:bg-black"
+					use:reveal={{ delay: 80 * i }}
+				>
+					<h4 class="t-card mb-3 text-slate-900 dark:text-neutral-50">{item.title}</h4>
+					<p class="t-body">{item.desc}</p>
+					<div class="absolute bottom-0 left-0 h-px w-0 bg-current opacity-60 transition-all duration-700 group-hover:w-full"></div>
 				</div>
 			{/each}
 		</div>

@@ -11,7 +11,7 @@
 	<div class="flex items-center justify-between gap-4 md:gap-10">
 		<img src="/self_logo.png" alt="KEG" class="h-6 w-auto md:h-8" />
 		{#each nav.links as link}
-			<a href={link.href} class="nav-link hidden text-[11px] font-light tracking-[0.3em] uppercase transition-colors duration-300 md:inline">{link.label}</a>
+			<a href={link.href} class="nav-link hidden text-[10px] font-medium tracking-[0.32em] uppercase transition-colors duration-300 md:inline">{link.label}</a>
 		{/each}
 		<button
 			class="nav-link flex h-8 w-8 items-center justify-center md:hidden"
@@ -35,7 +35,7 @@
 				{#each nav.links as link}
 					<a
 						href={link.href}
-						class="nav-link text-[11px] font-light tracking-[0.3em] uppercase transition-colors duration-300"
+						class="nav-link text-[10px] font-medium tracking-[0.32em] uppercase transition-colors duration-300"
 						onclick={() => mobileMenuOpen = false}
 					>{link.label}</a>
 				{/each}
