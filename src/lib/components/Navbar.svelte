@@ -5,8 +5,7 @@
 </script>
 
 <nav
-	class="liquid-nav fixed top-4 left-1/2 z-50 -translate-x-1/2 rounded-2xl px-4 py-3 transition-all duration-500 ease-in-out md:rounded-full md:px-8"
-	class:nav-hidden={navHidden}
+	class="liquid-nav fixed top-4 left-1/2 z-50 -translate-x-1/2 rounded-2xl px-4 py-3 transition-all duration-500 ease-in-out md:rounded-full md:px-8 {navHidden ? '-translate-y-[150%]' : ''}"
 	class:nav-dark={navOnDark}
 >
 	<div class="flex items-center justify-between gap-4 md:gap-10">
@@ -111,15 +110,11 @@
 
 	.liquid-nav.nav-dark :global(.nav-link),
 	:global(.dark) .liquid-nav :global(.nav-link) {
-		color: #f1f5f9;
+		color: #fafafa;
 	}
 	.liquid-nav.nav-dark :global(.nav-link:hover),
 	:global(.dark) .liquid-nav :global(.nav-link:hover) {
 		color: #ffffff;
-	}
-
-	.nav-hidden {
-		transform: translate(-50%, -150%);
 	}
 
 	.mobile-menu-inner {

@@ -22,7 +22,7 @@
 <button
 	onclick={toggle}
 	aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-	class="fixed top-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-300 hover:shadow-md dark:border-slate-700 dark:bg-black dark:text-slate-200"
+	class="fixed top-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-300 hover:shadow-md dark:border-neutral-700 dark:bg-black dark:text-neutral-200"
 >
 	{#if isDark}
 		<!-- sun -->
