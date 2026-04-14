@@ -36,7 +36,7 @@ html {
 }
 
 body {
-	background-color: #ecf3fc;
+	background-color: #f1f6fd;
 	color: #0f172a;
 	font-family: var(--font-sans);
 	font-feature-settings: inherit;
@@ -126,6 +126,30 @@ body {
 }
 .dark .section-rule {
 	border-top-color: #1f1f1f;
+}
+
+/* ==================== Scroll-linked focus ==================== */
+/* Each section fades to a dim opacity when it's entering or leaving the
+ * viewport and sits at full opacity when it's centered. Zero JS —
+ * pure CSS scroll-driven animation. Gracefully does nothing in
+ * browsers that don't support animation-timeline. */
+@supports (animation-timeline: view()) {
+	.focus-on-scroll {
+		animation: section-focus linear both;
+		animation-timeline: view();
+		animation-range: cover 0% cover 100%;
+	}
+}
+@keyframes section-focus {
+	0% { opacity: 0.35; }
+	25% { opacity: 1; }
+	75% { opacity: 1; }
+	100% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.focus-on-scroll {
+		animation: none;
+	}
 }
 
 /* ==================== Reveal (use:reveal) ==================== */

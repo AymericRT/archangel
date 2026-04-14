@@ -3,14 +3,14 @@
 	let { isLoaded = false }: { isLoaded?: boolean } = $props();
 </script>
 
-<section class="hero-section relative z-10 flex min-h-screen items-center">
+<section class="hero-section focus-on-scroll relative z-10 flex min-h-screen items-center">
 
-	<div class="relative mx-auto w-full max-w-6xl px-8">
+	<div class="relative mx-auto w-full max-w-6xl px-8 text-center">
 		<div class="hero-est tabular absolute right-8 top-10 text-[10px] font-medium tracking-[0.4em] text-slate-500 dark:text-neutral-500">{hero.est}</div>
 
 		<div class="hero-content relative z-10" class:loaded={isLoaded}>
 			<div class="overflow-hidden">
-				<div class="hero-title mb-10 flex items-center gap-5" style="transform: translateY(100%); opacity: 0;">
+				<div class="hero-title mb-10 flex items-center justify-center gap-5" style="transform: translateY(100%); opacity: 0;">
 					<img src="/self_logo.png" alt="KEG" class="h-11 w-auto md:h-14 lg:h-16" />
 					<h1 class="t-display text-slate-900 dark:text-neutral-50">
 						{hero.brand}
@@ -19,7 +19,7 @@
 			</div>
 
 			<div class="overflow-hidden">
-				<p class="hero-tagline t-lead mb-12 max-w-xl" style="transform: translateY(100%); opacity: 0;">
+				<p class="hero-tagline t-lead mx-auto mb-12 max-w-xl" style="transform: translateY(100%); opacity: 0;">
 					{hero.tagline}
 				</p>
 			</div>

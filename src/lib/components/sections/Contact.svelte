@@ -41,7 +41,7 @@
 		'block w-full border-0 border-b border-slate-200 bg-transparent py-5 text-lg font-light text-slate-900 outline-none transition-[border-color,color] duration-300 placeholder:font-light placeholder:text-slate-400 focus:border-slate-900 dark:border-neutral-800 dark:text-neutral-50 dark:placeholder:text-neutral-600 dark:focus:border-neutral-50';
 </script>
 
-<section id="contact" class="overflow-hidden">
+<section id="contact" class="focus-on-scroll overflow-hidden">
 	<div class="section section-rule mx-auto max-w-6xl px-8">
 		<div class="mb-20 text-center" use:reveal>
 			<p class="t-eyebrow mb-10">{contact.eyebrow}</p>
