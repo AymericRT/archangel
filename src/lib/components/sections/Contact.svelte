@@ -36,29 +36,27 @@
 		}
 	}
 
-	// Minimal underlined input — no frame, no label above, no float-label.
 	const field =
-		'block w-full border-0 border-b border-slate-200 bg-transparent py-5 text-lg font-light text-slate-900 outline-none transition-[border-color,color] duration-300 placeholder:font-light placeholder:text-slate-400 focus:border-slate-900 dark:border-neutral-800 dark:text-neutral-50 dark:placeholder:text-neutral-600 dark:focus:border-neutral-50';
+		'block w-full border-0 border-b border-[var(--rule)] bg-transparent py-5 text-[0.9375rem] font-light text-[var(--ink)] outline-none transition-[border-color] duration-300 placeholder:font-light placeholder:text-[var(--mid-light)] focus:border-[var(--ink)]';
 </script>
 
-<section id="contact" class="focus-on-scroll overflow-hidden">
-	<div class="section section-rule mx-auto max-w-6xl px-8">
-		<div class="mb-20 text-center" use:reveal>
+<section id="contact" class="focus-on-scroll">
+	<div class="section mx-auto max-w-7xl px-8 md:px-16 lg:px-24">
+		<!-- Centered heading -->
+		<div class="mb-16 text-center md:mb-20" use:reveal>
 			<p class="t-eyebrow mb-10">{contact.eyebrow}</p>
-			<h2 class="t-section mb-3 text-slate-900 dark:text-neutral-50">
-				{#each contact.headingTop as word, i}<span class="inline-block">{word}</span>{#if i < contact.headingTop.length - 1}{' '}{/if}{/each}
-			</h2>
-			<h2 class="t-section mb-12 text-slate-500 dark:text-neutral-500">
-				{#each contact.headingBottom as word, i}<span class="inline-block">{word}</span>{#if i < contact.headingBottom.length - 1}{' '}{/if}{/each}
+			<h2 class="t-display mb-6 text-[var(--ink)]">
+				{contact.headingTop.join(' ')} {contact.headingBottom.join(' ')}
 			</h2>
 			<p class="t-lead mx-auto max-w-xl">
 				{contact.body}
 			</p>
 		</div>
 
-		<div class="mx-auto max-w-2xl" use:reveal={{ delay: 180 }}>
-			<form onsubmit={handleFormSubmit} class="space-y-2">
-				<div class="grid gap-x-10 sm:grid-cols-2">
+		<!-- Centered form -->
+		<div class="mx-auto max-w-2xl" use:reveal={{ delay: 150 }}>
+			<form onsubmit={handleFormSubmit} class="space-y-1">
+				<div class="grid gap-x-8 sm:grid-cols-2">
 					<div>
 						<label for="contact-name" class="sr-only">Full name</label>
 						<input id="contact-name" type="text" bind:value={formName} required placeholder="Full name" autocomplete="name" class={field} />
@@ -85,11 +83,7 @@
 				</div>
 
 				<div class="flex flex-col-reverse items-center gap-6 pt-10 md:flex-row md:justify-between">
-					<p
-						class="t-eyebrow min-h-[1em]"
-						class:text-slate-900={formStatus === 'sent'}
-						class:dark:text-neutral-50={formStatus === 'sent'}
-					>
+					<p class="text-[0.6875rem] font-medium tracking-[0.2em] uppercase min-h-[1em] {formStatus === 'sent' ? 'text-[var(--ink)]' : 'text-[var(--mid-light)]'}">
 						{#if formStatus === 'sent'}
 							Message sent
 						{:else if formStatus === 'error'}
@@ -101,9 +95,9 @@
 					<button
 						type="submit"
 						disabled={formStatus === 'sending'}
-						class="group relative inline-flex items-center justify-center overflow-hidden border border-slate-900 px-12 py-4 text-[11px] font-medium tracking-[0.32em] text-slate-900 uppercase transition-colors duration-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-50 dark:text-neutral-50 dark:hover:text-black"
+						class="cta-btn disabled:cursor-not-allowed disabled:opacity-40"
 					>
-						<span class="relative z-10">
+						<span>
 							{#if formStatus === 'sending'}
 								Sending…
 							{:else if formStatus === 'sent'}
@@ -112,10 +106,9 @@
 								Send
 							{/if}
 						</span>
-						<span
-							aria-hidden="true"
-							class="absolute inset-0 -translate-y-full bg-slate-900 transition-transform duration-500 group-hover:translate-y-0 dark:bg-neutral-50"
-						></span>
+						<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+						</svg>
 					</button>
 				</div>
 			</form>

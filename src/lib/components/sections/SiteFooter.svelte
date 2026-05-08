@@ -2,15 +2,22 @@
 	import { footer } from '$lib/content';
 </script>
 
-<footer>
-	<div class="section-rule mx-auto max-w-6xl px-8 py-10">
-		<div class="flex flex-col items-center justify-between gap-4 md:flex-row">
-			<p class="text-[11px] font-medium tracking-[0.18em] text-slate-700 uppercase dark:text-neutral-200">{footer.brand}</p>
-			<div class="flex gap-10">
-				<a href="#about" class="text-[10px] font-medium tracking-[0.32em] text-slate-500 uppercase transition-colors hover:text-slate-900 dark:text-neutral-400 dark:hover:text-neutral-50">About</a>
-				<a href="#contact" class="text-[10px] font-medium tracking-[0.32em] text-slate-500 uppercase transition-colors hover:text-slate-900 dark:text-neutral-400 dark:hover:text-neutral-50">Contact</a>
+<footer class="border-t border-[var(--rule)]">
+	<div class="mx-auto max-w-7xl px-8 py-12 md:px-16 md:py-16 lg:px-24">
+		<div class="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
+			<div class="flex items-center gap-4">
+				<img src="/self_logo.png" alt="KEG" width="199" height="187" loading="lazy" class="h-7 w-auto opacity-50" />
+				<p class="text-[11px] font-medium tracking-[0.18em] text-[var(--ink)] uppercase">{footer.brand}</p>
 			</div>
-			<p class="tabular text-[10px] font-medium tracking-[0.32em] text-slate-500 uppercase dark:text-neutral-500">{footer.copyright}</p>
+
+			<div class="flex flex-wrap gap-x-8 gap-y-3">
+				<a href="/#about" class="text-[10px] font-medium tracking-[0.25em] text-[var(--mid-light)] uppercase transition-colors duration-300 hover:text-[var(--ink)]">About</a>
+				<a href="/#capabilities" class="text-[10px] font-medium tracking-[0.25em] text-[var(--mid-light)] uppercase transition-colors duration-300 hover:text-[var(--ink)]">Capabilities</a>
+				<a href="/#ethos" class="text-[10px] font-medium tracking-[0.25em] text-[var(--mid-light)] uppercase transition-colors duration-300 hover:text-[var(--ink)]">Ethos</a>
+				<a href="/#contact" class="text-[10px] font-medium tracking-[0.25em] text-[var(--mid-light)] uppercase transition-colors duration-300 hover:text-[var(--ink)]">Contact</a>
+			</div>
+
+			<p class="tabular text-[10px] font-medium tracking-[0.25em] text-[var(--mid-light)] uppercase">{footer.copyright}</p>
 		</div>
 	</div>
 </footer>

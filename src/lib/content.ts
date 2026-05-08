@@ -11,8 +11,10 @@ export const hero = {
 
 export const statement = {
 	lines: ['Strategic Defense.', 'Resilient Infrastructure.', 'Ethical Capital.'],
+	lead:
+		'We are a multi-disciplinary industrial group bridging the gap between national security and sustainable development.',
 	body:
-		'We are a multi-disciplinary industrial group bridging the gap between national security and sustainable development. Integrating over a decade of specialized engineering expertise with a philosophy of long-term stewardship, we build the systems that protect and empower nations.'
+		'Integrating over a decade of specialized engineering expertise with a philosophy of long-term stewardship, we build the systems that protect and empower nations.'
 };
 
 export const expertise: Item[] = [
@@ -109,11 +111,26 @@ export const footer = {
 	copyright: '\u00A9 2024 Kleis Eschatos Group'
 };
 
-export const nav = {
+export type NavLink = {
+	label: string;
+	href?: string;
+	children?: { label: string; href: string }[];
+};
+
+export const nav: { links: NavLink[] } = {
 	links: [
-		{ label: 'About', href: '#about' },
-		{ label: 'Capabilities', href: '#capabilities' },
-		{ label: 'Ethos', href: '#ethos' },
-		{ label: 'Contact', href: '#contact' }
+		{ label: 'Home', href: '/' },
+		{ label: 'Defense & Security', href: '/capabilities/defense' },
+		{ label: 'Infrastructure', href: '/capabilities/infrastructure' },
+		{ label: 'Investments', href: '/capabilities/investments' },
+		{ label: 'Energy', href: '/capabilities/energy' },
+		{ label: 'Contact', href: '/#contact' }
 	]
 };
+
+export const capabilitySlugs = {
+	defense: 'defense',
+	infrastructure: 'infrastructure',
+	investments: 'investments',
+	energy: 'energy'
+} as const;

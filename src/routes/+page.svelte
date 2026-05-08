@@ -1,39 +1,17 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-
 	import Navbar from '$lib/components/Navbar.svelte';
-	import Hero from '$lib/components/sections/Hero.svelte';
+	import HorizontalHeroPager from '$lib/components/sections/HorizontalHeroPager.svelte';
 	import Homepage from '$lib/components/sections/Homepage.svelte';
+	import Expertise from '$lib/components/sections/Expertise.svelte';
 	import About from '$lib/components/sections/About.svelte';
-	import CapabilitiesDefense from '$lib/components/sections/CapabilitiesDefense.svelte';
-	import CapabilitiesInfra from '$lib/components/sections/CapabilitiesInfra.svelte';
-	import CapabilitiesInvestments from '$lib/components/sections/CapabilitiesInvestments.svelte';
-	import CapabilitiesEnergy from '$lib/components/sections/CapabilitiesEnergy.svelte';
+	import CapabilitiesIndex from '$lib/components/sections/CapabilitiesIndex.svelte';
 	import Ethos from '$lib/components/sections/Ethos.svelte';
+	import CapabilitySection from '$lib/components/sections/CapabilitySection.svelte';
+	import CapabilitiesInfra from '$lib/components/sections/CapabilitiesInfra.svelte';
 	import Contact from '$lib/components/sections/Contact.svelte';
 	import SiteFooter from '$lib/components/sections/SiteFooter.svelte';
 
-	let scrollY = $state(0);
-	let lastScrollY = 0;
-	let navHidden = $state(false);
-	let navOnDark = $state(false);
-	let isLoaded = $state(false);
-
-	onMount(() => {
-		const handleScroll = () => {
-			scrollY = window.scrollY;
-			navHidden = scrollY > lastScrollY && scrollY > 80;
-			lastScrollY = scrollY;
-		};
-
-		window.addEventListener('scroll', handleScroll, { passive: true });
-
-		setTimeout(() => { isLoaded = true; }, 100);
-
-		return () => {
-			window.removeEventListener('scroll', handleScroll);
-		};
-	});
+	let activeIdx = $state(0);
 </script>
 
 <svelte:head>
@@ -49,22 +27,48 @@
 </svelte:head>
 
 <div class="relative">
-	<Navbar {navHidden} {navOnDark} />
+	<Navbar />
 
-	<Hero {isLoaded} />
+	<HorizontalHeroPager bind:activeIdx />
 
-	<Homepage />
-
-	<About />
-
-	<CapabilitiesDefense />
-	<CapabilitiesInfra />
-	<CapabilitiesInvestments />
-	<CapabilitiesEnergy />
-
-	<Ethos />
-
-	<Contact />
+	<!-- Below-pager content swaps based on the active hero pane. -->
+	{#key activeIdx}
+		<div class="pane-content divide-y divide-[var(--rule)]">
+			{#if activeIdx === 0}
+				<Homepage />
+				<Expertise />
+				<About />
+				<CapabilitiesIndex />
+				<Ethos />
+				<Contact />
+			{:else if activeIdx === 1}
+				<CapabilitySection slug="defense" />
+				<Contact />
+			{:else if activeIdx === 2}
+				<CapabilitiesInfra />
+				<Contact />
+			{:else if activeIdx === 3}
+				<CapabilitySection slug="investments" />
+				<Contact />
+			{:else if activeIdx === 4}
+				<CapabilitySection slug="energy" />
+				<Contact />
+			{/if}
+		</div>
+	{/key}
 
 	<SiteFooter />
 </div>
+
+<style>
+	.pane-content {
+		animation: pane-fade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+	@keyframes pane-fade {
+		from { opacity: 0; transform: translateY(8px); }
+		to { opacity: 1; transform: none; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.pane-content { animation: none; }
+	}
+</style>

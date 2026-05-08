@@ -1,6 +1,5 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/inter/index.css';
-@import '@fontsource-variable/inter/wght-italic.css';
+@import '@fontsource-variable/inter/wght.css';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 
@@ -8,22 +7,45 @@
 
 /* ==================== Design tokens ==================== */
 :root {
-	/* Editorial type — Inter Variable, tightened tracking, OpenType set for tabular nums on numerals */
 	--font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-	/* Fluid display sizes (clamp(min, preferred, max)) */
-	--text-display: clamp(2.5rem, 4.6vw + 1rem, 4.5rem); /* hero h1 */
-	--text-section: clamp(2rem, 3.4vw + 1rem, 3.25rem); /* section h2 */
-	--text-subsection: clamp(1.6rem, 2.2vw + 0.9rem, 2.4rem); /* cap h3 */
-	--text-card: clamp(1.125rem, 0.6vw + 1rem, 1.375rem); /* card h4 */
-	--text-lead: clamp(1.0625rem, 0.4vw + 1rem, 1.25rem); /* lead p */
-	--text-body: clamp(0.95rem, 0.15vw + 0.9rem, 1.0625rem); /* body p */
-	--text-eyebrow: 0.7rem; /* labels */
+	/* Fluid type scale */
+	/* Sizes follow raretalent.xyz Tailwind scale: 3xl→6xl hero, 2xl→3xl display, lg→xl pillar, base→lg lead, sm body */
+	--text-hero: clamp(1.875rem, 4.2vw + 0.6rem, 3.75rem);       /* 30 → 60px */
+	--text-display: clamp(1.5rem, 1.4vw + 1.1rem, 1.875rem);     /* 24 → 30px */
+	--text-section: clamp(1.5rem, 1.4vw + 1.1rem, 1.875rem);     /* 24 → 30px */
+	--text-subsection: clamp(1.25rem, 0.6vw + 1.1rem, 1.5rem);   /* 20 → 24px */
+	--text-card: clamp(1.125rem, 0.4vw + 1rem, 1.25rem);         /* 18 → 20px */
+	--text-lead: clamp(1rem, 0.3vw + 0.95rem, 1.125rem);         /* 16 → 18px */
+	--text-body: 0.875rem;                                        /* 14px */
+	--text-eyebrow: 0.75rem;                                      /* 12px */
+	--text-pillar: clamp(1.125rem, 0.4vw + 1rem, 1.25rem);       /* 18 → 20px */
 
 	/* Vertical rhythm */
-	--space-section: clamp(5rem, 9vh, 8rem); /* section py */
-	--space-section-tight: clamp(3.5rem, 6vh, 5rem);
-	--space-block: clamp(3rem, 5vh, 4.5rem); /* between blocks within a section */
+	--space-section: clamp(6rem, 12vh, 10rem);
+	--space-section-tight: clamp(4rem, 7vh, 6rem);
+	--space-block: clamp(3rem, 5vh, 4.5rem);
+
+	/* Palette */
+	--ink: #111111;
+	--ink-soft: #2a2a2a;
+	--paper: #ffffff;
+	--paper-alt: #f5f5f5;
+	--mid: #737373;
+	--mid-light: #999999;
+	--rule: #e0e0e0;
+	--accent: #1233e6;
+}
+
+.dark {
+	--ink: #fafafa;
+	--ink-soft: #d4d4d4;
+	--paper: #000000;
+	--paper-alt: #0a0a0a;
+	--mid: #a3a3a3;
+	--mid-light: #737373;
+	--rule: #1f1f1f;
+	--accent: #2244ff;
 }
 
 /* ==================== Base ==================== */
@@ -32,84 +54,80 @@ html {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	scrollbar-gutter: stable;
-	font-feature-settings: 'cv11', 'ss01', 'ss03'; /* Inter stylistic sets — cleaner 1, alt a, alt l */
+	font-feature-settings: 'cv11', 'ss01', 'ss03';
 }
 
 body {
-	background-color: #f1f6fd;
-	color: #0f172a;
+	background-color: var(--paper);
+	color: var(--ink);
 	font-family: var(--font-sans);
 	font-feature-settings: inherit;
 	overflow-x: hidden;
-	transition: background-color 0.4s ease, color 0.4s ease;
+	transition: background-color 0.5s ease, color 0.5s ease;
 	-webkit-text-size-adjust: 100%;
 	text-rendering: optimizeLegibility;
 }
 
-.dark body {
-	background-color: #000000;
-	color: #fafafa;
-}
-
-/* Numerals — tabular for years, eyebrows, anything dataish */
 .tabular {
 	font-variant-numeric: tabular-nums lining-nums;
 	font-feature-settings: 'tnum', 'lnum';
 }
 
-/* ==================== Typography utilities ==================== */
+/* ==================== Typography (raretalent.xyz scale) ==================== */
+.t-hero {
+	font-size: var(--text-hero);
+	line-height: 1.2;
+	letter-spacing: -1.5px;
+	font-weight: 600;
+}
 .t-display {
 	font-size: var(--text-display);
-	line-height: 1.04;
-	letter-spacing: -0.02em;
-	font-weight: 250;
+	line-height: 1.2;
+	letter-spacing: -0.9px;
+	font-weight: 600;
 }
 .t-section {
 	font-size: var(--text-section);
-	line-height: 1.08;
-	letter-spacing: -0.018em;
-	font-weight: 250;
+	line-height: 1.2;
+	letter-spacing: -0.9px;
+	font-weight: 600;
 }
 .t-subsection {
 	font-size: var(--text-subsection);
-	line-height: 1.12;
-	letter-spacing: -0.014em;
-	font-weight: 280;
+	line-height: 1.3;
+	letter-spacing: -0.4px;
+	font-weight: 600;
 }
 .t-card {
 	font-size: var(--text-card);
-	line-height: 1.3;
-	letter-spacing: -0.005em;
-	font-weight: 350;
+	line-height: 1.4;
+	font-weight: 600;
 }
 .t-lead {
 	font-size: var(--text-lead);
-	line-height: 1.6;
-	letter-spacing: -0.005em;
-	font-weight: 350;
-	color: #475569;
-}
-.dark .t-lead {
-	color: #d4d4d4;
+	line-height: 1.7;
+	font-weight: 400;
+	color: var(--mid);
 }
 .t-body {
 	font-size: var(--text-body);
-	line-height: 1.7;
-	font-weight: 380;
-	color: #64748b;
-}
-.dark .t-body {
-	color: #a3a3a3;
+	line-height: 1.6;
+	font-weight: 500;
+	color: var(--mid);
 }
 .t-eyebrow {
 	font-size: var(--text-eyebrow);
-	letter-spacing: 0.32em;
+	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	font-weight: 450;
-	color: #64748b;
+	font-weight: 600;
+	color: var(--mid-light);
 }
-.dark .t-eyebrow {
-	color: #a3a3a3;
+/* Pillar keyword */
+.t-pillar {
+	font-size: var(--text-pillar);
+	line-height: 1.4;
+	font-weight: 600;
+	text-transform: none;
 }
 
 /* ==================== Section primitives ==================== */
@@ -121,41 +139,59 @@ body {
 	padding-top: var(--space-section-tight);
 	padding-bottom: var(--space-section-tight);
 }
-.section-rule {
-	border-top: 1px solid #e2e8f0;
-}
-.dark .section-rule {
-	border-top-color: #1f1f1f;
+
+/* Alt background — light gray band */
+.section-alt {
+	background-color: var(--paper-alt);
 }
 
-/* ==================== Scroll-linked focus ==================== */
-/* Each section fades to a dim opacity when it's entering or leaving the
- * viewport and sits at full opacity when it's centered. Zero JS —
- * pure CSS scroll-driven animation. Gracefully does nothing in
- * browsers that don't support animation-timeline. */
-@supports (animation-timeline: view()) {
-	.focus-on-scroll {
-		animation: section-focus linear both;
-		animation-timeline: view();
-		animation-range: cover 0% cover 100%;
-	}
+/* ==================== CTA Button ==================== */
+.cta-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.75rem;
+	font-size: 0.75rem;
+	font-weight: 500;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	padding: 1rem 2rem;
+	border: 1px solid currentColor;
+	position: relative;
+	overflow: hidden;
+	transition: color 400ms, border-color 400ms;
 }
-@keyframes section-focus {
-	0% { opacity: 0.35; }
-	25% { opacity: 1; }
-	75% { opacity: 1; }
-	100% { opacity: 0.35; }
+.cta-btn::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: var(--ink);
+	transform: translateY(101%);
+	transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-@media (prefers-reduced-motion: reduce) {
-	.focus-on-scroll {
-		animation: none;
-	}
+.cta-btn:hover::before {
+	transform: translateY(0);
+}
+.cta-btn:hover {
+	color: var(--paper);
+	border-color: var(--ink);
+}
+.cta-btn span {
+	position: relative;
+	z-index: 1;
+}
+.cta-btn svg {
+	position: relative;
+	z-index: 1;
+	transition: transform 300ms;
+}
+.cta-btn:hover svg {
+	transform: translateX(4px);
 }
 
-/* ==================== Reveal (use:reveal) ==================== */
+/* ==================== Reveal animation ==================== */
 .reveal {
 	opacity: 0;
-	transform: translateY(14px);
+	transform: translateY(24px);
 	transition:
 		opacity 900ms cubic-bezier(0.22, 1, 0.36, 1),
 		transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -165,79 +201,207 @@ body {
 	opacity: 1;
 	transform: none;
 }
+
 @media (prefers-reduced-motion: reduce) {
-	.reveal,
-	.reveal.is-revealed {
+	.reveal, .reveal.is-revealed {
 		opacity: 1;
 		transform: none;
 		transition: none;
 	}
 }
 
+/* ==================== Scroll-linked focus ==================== */
+@supports (animation-timeline: view()) {
+	.focus-on-scroll {
+		animation: section-focus linear both;
+		animation-timeline: view();
+		animation-range: cover 0% cover 100%;
+	}
+}
+@keyframes section-focus {
+	0% { opacity: 0.2; }
+	20% { opacity: 1; }
+	80% { opacity: 1; }
+	100% { opacity: 0.2; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.focus-on-scroll { animation: none; }
+}
+
+/* ==================== Hero load animation ==================== */
+.loaded .hero-line {
+	animation: hero-rise 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.loaded .hero-line:nth-child(1) { animation-delay: 200ms; }
+.loaded .hero-sub {
+	animation: hero-rise 1100ms cubic-bezier(0.22, 1, 0.36, 1) 500ms forwards;
+}
+.loaded .hero-cta {
+	animation: hero-fade 1200ms cubic-bezier(0.22, 1, 0.36, 1) 800ms forwards;
+}
+.loaded .hero-badge {
+	animation: hero-fade 1400ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms forwards;
+}
+.loaded .hero-tagline {
+	animation: hero-fade 1200ms cubic-bezier(0.22, 1, 0.36, 1) 700ms forwards;
+}
+@keyframes hero-rise {
+	from { transform: translateY(100%); opacity: 0; }
+	to { transform: translateY(0); opacity: 1; }
+}
+@keyframes hero-fade {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+	animation: scrollPulse 2.8s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+	0%, 100% { opacity: 0.4; transform: translateY(0); }
+	50% { opacity: 1; transform: translateY(6px); }
+}
+
+/* ==================== Pillar card hover ==================== */
+.pillar-card {
+	position: relative;
+	transition: background-color 500ms;
+}
+.pillar-card::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 3px;
+	background: var(--accent);
+	transform: scaleX(0);
+	transform-origin: left;
+	transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pillar-card:hover::after {
+	transform: scaleX(1);
+}
+.pillar-card:hover {
+	background-color: rgba(0, 0, 0, 0.02);
+}
+.dark .pillar-card:hover {
+	background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* ==================== Capability showcase card ==================== */
+.showcase-card {
+	position: relative;
+	overflow: hidden;
+	transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.showcase-card:hover {
+	transform: translateY(-2px);
+}
+.showcase-card .showcase-accent {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 3px;
+	height: 0;
+	background: var(--accent);
+	transition: height 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.showcase-card:hover .showcase-accent {
+	height: 100%;
+}
+
+/* ==================== Counter/numbering ==================== */
+.cap-number {
+	font-size: 0.75rem;
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	color: var(--accent);
+	min-width: 2rem;
+}
+
 /* ==================== Scrollbar ==================== */
-::-webkit-scrollbar {
-	width: 6px;
-}
-::-webkit-scrollbar-track {
-	background: transparent;
-}
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-	background: rgba(15, 23, 42, 0.18);
+	background: rgba(10, 15, 26, 0.15);
 	border-radius: 3px;
 }
 .dark ::-webkit-scrollbar-thumb {
-	background: rgba(255, 255, 255, 0.16);
-}
-::-webkit-scrollbar-thumb:hover {
-	background: rgba(15, 23, 42, 0.32);
-}
-.dark ::-webkit-scrollbar-thumb:hover {
-	background: rgba(255, 255, 255, 0.32);
+	background: rgba(255, 255, 255, 0.12);
 }
 
 /* ==================== Focus ==================== */
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible {
+a:focus-visible, button:focus-visible,
+input:focus-visible, textarea:focus-visible {
 	outline: 1px solid currentColor;
 	outline-offset: 3px;
 	border-radius: 1px;
 }
 
-/* ==================== Hero load animation (CSS-only) ==================== */
-.loaded .hero-title {
-	animation: rise 1100ms cubic-bezier(0.22, 1, 0.36, 1) 250ms forwards;
-}
-.loaded .hero-tagline {
-	animation: rise 1100ms cubic-bezier(0.22, 1, 0.36, 1) 500ms forwards;
-}
-@keyframes rise {
-	to { transform: translateY(0); opacity: 1; }
-}
-
-.scroll-indicator {
-	animation: scrollPulse 2.6s ease-in-out infinite;
-}
-@keyframes scrollPulse {
-	0%, 100% { opacity: 0.45; transform: translateY(0); }
-	50% { opacity: 1; transform: translateY(4px); }
-}
-
-.magnetic-btn {
-	transition:
-		transform 350ms cubic-bezier(0.22, 1, 0.36, 1),
-		border-color 250ms,
-		background-color 250ms,
-		color 250ms;
-}
-
 /* ==================== Selection ==================== */
 ::selection {
-	background: rgba(15, 23, 42, 0.92);
+	background: rgba(10, 15, 26, 0.92);
 	color: #ffffff;
 }
 .dark ::selection {
 	background: rgba(255, 255, 255, 0.92);
 	color: #000000;
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.loaded .hero-line,
+	.loaded .hero-sub,
+	.loaded .hero-cta,
+	.loaded .hero-badge,
+	.loaded .hero-tagline,
+	.scroll-indicator {
+		animation: none !important;
+		opacity: 1 !important;
+		transform: none !important;
+	}
+}
+
+/* ==================== Hero-flow page transitions ==================== */
+/* Uses the View Transitions API. Direction is set by the layout's onNavigate
+   handler on `<html data-flow-dir="forward|back|none">`. */
+@keyframes flow-out-left {
+	to { transform: translateX(-8%); opacity: 0; }
+}
+@keyframes flow-in-right {
+	from { transform: translateX(8%); opacity: 0; }
+}
+@keyframes flow-out-right {
+	to { transform: translateX(8%); opacity: 0; }
+}
+@keyframes flow-in-left {
+	from { transform: translateX(-8%); opacity: 0; }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 700ms;
+	animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-flow-dir='forward']::view-transition-old(root) {
+	animation-name: flow-out-left;
+}
+html[data-flow-dir='forward']::view-transition-new(root) {
+	animation-name: flow-in-right;
+}
+html[data-flow-dir='back']::view-transition-old(root) {
+	animation-name: flow-out-right;
+}
+html[data-flow-dir='back']::view-transition-new(root) {
+	animation-name: flow-in-left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation-duration: 0.01ms;
+	}
+}
+
