@@ -1,29 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { onNavigate } from '$app/navigation';
-	import { direction } from '$lib/nav-flow';
 	import './layout.css';
 	import 'lenis/dist/lenis.css';
 
 	let { children } = $props();
 
-	// View Transitions API for slide-style page transitions between flow routes
-	// (still used when prev/next pager buttons on capability pages are clicked).
-	onNavigate((nav) => {
-		if (typeof document === 'undefined' || !document.startViewTransition) return;
-		const from = nav.from?.url.pathname ?? '';
-		const to = nav.to?.url.pathname ?? '';
-		document.documentElement.dataset.flowDir = direction(from, to);
-		return new Promise((resolve) => {
-			document.startViewTransition(async () => {
-				resolve();
-				await nav.complete;
-			});
-		});
-	});
+	// TEMP: Lenis smooth-scroll disabled — flip back to `true` to restore.
+	const ENABLE_SMOOTH_SCROLL = false;
 
 	onMount(() => {
 		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		if (!ENABLE_SMOOTH_SCROLL) return;
 
 		let cleanup = () => {};
 		import('lenis').then(({ default: Lenis }) => {

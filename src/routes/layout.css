@@ -34,7 +34,7 @@
 	--mid: #737373;
 	--mid-light: #999999;
 	--rule: #e0e0e0;
-	--accent: #1233e6;
+	--accent: #4d7eff;
 }
 
 .dark {
@@ -45,16 +45,23 @@
 	--mid: #a3a3a3;
 	--mid-light: #737373;
 	--rule: #1f1f1f;
-	--accent: #2244ff;
+	--accent: #6b94ff;
 }
 
 /* ==================== Base ==================== */
 html {
-	scroll-behavior: smooth;
+	/* TEMP: smooth scroll disabled — restore `scroll-behavior: smooth;` */
+	scroll-behavior: auto;
+	/* Snap is off by default and toggled on only while the capabilities
+	   section is in view — see CapabilitiesIndex.svelte. */
+	scroll-snap-type: none;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	scrollbar-gutter: stable;
 	font-feature-settings: 'cv11', 'ss01', 'ss03';
+}
+html.cap-snap-active {
+	scroll-snap-type: y mandatory;
 }
 
 body {

@@ -27,14 +27,14 @@
 			<span class="hidden text-[10px] font-medium tracking-[0.25em] text-[var(--mid-light)] uppercase md:inline">Four Pillars</span>
 		</div>
 
-		<div bind:this={gridEl} class="flex flex-col gap-6 md:gap-8" class:in-view={inView} use:reveal>
+		<div bind:this={gridEl} class="grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 md:gap-8 lg:grid-cols-4" class:in-view={inView} use:reveal>
 			{#each expertise as item, i}
-				<article class="card group relative flex flex-col border border-[var(--rule)] bg-[var(--paper)] transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:flex-row">
+				<article class="card group relative flex aspect-[3/4] w-full max-w-[260px] flex-col overflow-hidden border border-[var(--rule)] bg-[var(--paper)] transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
 					<!-- Top accent line -->
-					<span class="card-accent pointer-events-none absolute top-0 left-0 h-px w-0 bg-[var(--ink)] transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:w-full"></span>
+					<span class="card-accent pointer-events-none absolute top-0 left-0 z-30 h-px w-0 bg-[var(--ink)] transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:w-full"></span>
 
-					<!-- Visual frame -->
-					<div class="card-visual-frame relative aspect-[16/9] overflow-hidden border-b border-[var(--rule)] bg-[var(--paper-alt)] md:aspect-auto md:w-2/5 md:flex-shrink-0 md:border-r md:border-b-0">
+					<!-- Visual frame fills the entire card -->
+					<div class="absolute inset-0 z-0 overflow-hidden bg-[var(--paper-alt)]">
 						<!-- Meta strip: number + category -->
 						<div class="absolute top-5 left-5 z-10 flex items-center gap-3 md:top-6 md:left-6">
 							<span class="cap-number">0{i + 1}</span>
@@ -44,7 +44,7 @@
 
 						<!-- Corner tick marks -->
 						<span class="pointer-events-none absolute top-3 right-3 h-2.5 w-2.5 border-t border-r border-[var(--rule)]"></span>
-						<span class="pointer-events-none absolute bottom-3 left-3 h-2.5 w-2.5 border-b border-l border-[var(--rule)]"></span>
+						<span class="pointer-events-none absolute bottom-3 left-3 z-20 h-2.5 w-2.5 border-b border-l border-[var(--rule)]"></span>
 
 						<!-- Animation -->
 						<div class="card-visual absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-[1.02]">
@@ -146,9 +146,9 @@
 						</div>
 					</div>
 
-					<!-- Content -->
-					<div class="flex flex-1 flex-col justify-center p-8 md:p-12 lg:p-16">
-						<h3 class="t-pillar mb-4 text-[var(--ink)]">{item.title}</h3>
+					<!-- Glass content panel overlaying the visual -->
+					<div class="card-glass relative z-20 mt-auto border-t border-[var(--rule)] p-6 md:p-7">
+						<h3 class="t-pillar mb-2 text-[var(--ink)]">{item.title}</h3>
 						<p class="t-body">{item.desc}</p>
 					</div>
 				</article>
@@ -193,6 +193,18 @@
 
 	.card-visual {
 		color: var(--ink);
+	}
+
+	/* Frosted-glass content panel overlaying the visual */
+	.card-glass {
+		background-color: color-mix(in srgb, var(--paper) 55%, transparent);
+		backdrop-filter: blur(14px) saturate(140%);
+		-webkit-backdrop-filter: blur(14px) saturate(140%);
+	}
+	@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+		.card-glass {
+			background-color: color-mix(in srgb, var(--paper) 88%, transparent);
+		}
 	}
 
 	/* ---- Defense: radar ---- */

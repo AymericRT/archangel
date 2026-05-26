@@ -10,7 +10,7 @@ export const hero = {
 };
 
 export const statement = {
-	lines: ['Strategic Defense.', 'Resilient Infrastructure.', 'Ethical Capital.'],
+	lines: ['Strategic Defense', 'Resilient Infrastructure', 'Ethical Capital'],
 	lead:
 		'We are a multi-disciplinary industrial group bridging the gap between national security and sustainable development.',
 	body:
@@ -120,10 +120,10 @@ export type NavLink = {
 export const nav: { links: NavLink[] } = {
 	links: [
 		{ label: 'Home', href: '/' },
-		{ label: 'Defense & Security', href: '/capabilities/defense' },
-		{ label: 'Infrastructure', href: '/capabilities/infrastructure' },
-		{ label: 'Investments', href: '/capabilities/investments' },
-		{ label: 'Energy', href: '/capabilities/energy' },
+		{ label: 'Defense & Security', href: '/#defense' },
+		{ label: 'Infrastructure', href: '/#infrastructure' },
+		{ label: 'Investments', href: '/#investments' },
+		{ label: 'Energy', href: '/#energy' },
 		{ label: 'Contact', href: '/#contact' }
 	]
 };

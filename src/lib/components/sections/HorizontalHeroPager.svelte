@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { hero, capabilities } from '$lib/content';
-	import { flow } from '$lib/nav-flow';
+
+	const slugs = ['', 'defense', 'infrastructure', 'investments', 'energy'] as const;
 
 	type Pane =
 		| { kind: 'home' }
@@ -9,10 +10,10 @@
 
 	const panes: Pane[] = [
 		{ kind: 'home' },
-		{ kind: 'cap', slug: 'defense', title: 'Defense', accent: '& Security.', lead: capabilities.defense.lead },
-		{ kind: 'cap', slug: 'infrastructure', title: 'Sustainable Infrastructure', accent: '& Engineering.', lead: capabilities.infra.lead },
-		{ kind: 'cap', slug: 'investments', title: 'Strategic', accent: 'Investments.', lead: capabilities.investments.lead },
-		{ kind: 'cap', slug: 'energy', title: 'Energy', accent: '& Mining.', lead: capabilities.energy.lead }
+		{ kind: 'cap', slug: 'defense', title: 'Defense', accent: '& Security', lead: capabilities.defense.lead },
+		{ kind: 'cap', slug: 'infrastructure', title: 'Sustainable Infrastructure', accent: '& Engineering', lead: capabilities.infra.lead },
+		{ kind: 'cap', slug: 'investments', title: 'Strategic', accent: 'Investments', lead: capabilities.investments.lead },
+		{ kind: 'cap', slug: 'energy', title: 'Energy', accent: '& Mining', lead: capabilities.energy.lead }
 	];
 
 	let { activeIdx = $bindable(0) }: { activeIdx?: number } = $props();
@@ -23,13 +24,20 @@
 	onMount(() => {
 		const t = setTimeout(() => (isLoaded = true), 80);
 
-		// If we deep-link to /capabilities/<slug>, jump pager to that pane on load.
-		const initialPath = window.location.pathname;
-		const initialIdx = Math.max(0, flow.indexOf(initialPath as (typeof flow)[number]));
-		if (initialIdx > 0) {
-			pagerEl.scrollTo({ left: initialIdx * pagerEl.clientWidth, behavior: 'auto' });
-			activeIdx = initialIdx;
-		}
+		// Deep-link via URL hash (e.g. /#defense) — jump pager to that pane and react to hash changes.
+		const idxFromHash = () => {
+			const hash = window.location.hash.replace(/^#/, '');
+			const i = slugs.indexOf(hash as (typeof slugs)[number]);
+			return i > 0 ? i : -1;
+		};
+		const jumpToHash = (smooth = false) => {
+			const i = idxFromHash();
+			if (i < 0) return;
+			pagerEl.scrollTo({ left: i * pagerEl.clientWidth, behavior: smooth ? 'smooth' : 'auto' });
+			activeIdx = i;
+		};
+		jumpToHash();
+		window.addEventListener('hashchange', () => jumpToHash(true));
 
 		// ---- Wheel handling ----
 		// Horizontal-dominant gestures (touchpad two-finger swipe) drive the pager.
@@ -108,9 +116,10 @@
 				const idx = Math.round(pagerEl.scrollLeft / pagerEl.clientWidth);
 				if (idx === activeIdx) return;
 				activeIdx = idx;
-				const target = flow[idx];
-				if (target && target !== window.location.pathname) {
-					history.replaceState(null, '', target);
+				const slug = slugs[idx];
+				const targetHash = slug ? `#${slug}` : '';
+				if (targetHash !== window.location.hash) {
+					history.replaceState(null, '', `${window.location.pathname}${targetHash}`);
 				}
 			}, 140);
 		};
@@ -143,6 +152,7 @@
 	});
 </script>
 
+<div class="hero-region">
 <div bind:this={pagerEl} class="h-pager" data-h-pager data-hero class:loaded={isLoaded}>
 	{#each panes as pane, i}
 		<section class="h-pane" class:active={activeIdx === i}>
@@ -152,40 +162,29 @@
 			{#if i < panes.length - 1}
 				<span class="pane-connector pane-connector-right" aria-hidden="true"></span>
 			{/if}
-			{#if pane.kind === 'home'}
-				<div class="pane-frame">
-					<div class="pane-stage">
+			<div class="pane-frame">
+				<div class="pane-top">
+					{#if pane.kind === 'home'}
 						<div class="overflow-hidden">
 							<div class="hero-line flex items-center justify-center gap-4 md:gap-6">
 								<img src="/self_logo.png" alt="KEG" width="199" height="187" fetchpriority="high" class="h-10 w-auto md:h-14 lg:h-16" />
 								<h1 class="t-hero text-[var(--ink)]">{hero.brand}</h1>
 							</div>
 						</div>
-						<p class="hero-tagline mt-6 t-lead text-[var(--mid)] md:mt-8">
-							{hero.tagline.split('. ').map((s) => s.replace(/\.$/, '')).join(' · ')}
-						</p>
-					</div>
-				</div>
-			{:else}
-				<div class="pane-frame">
-					<div class="pane-stage">
+					{:else}
 						<div class="overflow-hidden">
-							<p class="hero-eyebrow t-eyebrow text-[var(--mid-light)]">Capabilities · 0{i}</p>
-						</div>
-						<div class="overflow-hidden">
-							<h1 class="hero-line t-hero mt-6 text-[var(--ink)]">
-								{pane.title}<br /><span class="text-[var(--mid)]">{pane.accent}</span>
+							<h1 class="hero-line t-hero text-[var(--ink)]">
+								{pane.title}<br /><span class="text-[var(--accent)]">{pane.accent}</span>
 							</h1>
 						</div>
-						<p class="hero-tagline mt-8 t-lead mx-auto max-w-2xl text-[var(--mid)]">{pane.lead}</p>
-					</div>
+					{/if}
 				</div>
-			{/if}
+			</div>
 		</section>
 	{/each}
 </div>
 
-<!-- Pane indicator (fixed below the pager, over content) -->
+<!-- Pane indicator — sits at the bottom of the hero region only. -->
 <div class="pane-indicator" class:loaded={isLoaded}>
 	{#each panes as _, i}
 		<button
@@ -196,6 +195,7 @@
 			onclick={() => pagerEl?.scrollTo({ left: i * pagerEl.clientWidth, behavior: 'smooth' })}
 		></button>
 	{/each}
+</div>
 </div>
 
 <style>
@@ -260,19 +260,21 @@
 		position: absolute;
 		inset: 0;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		padding: 0 2rem;
+		padding: 22vh 2rem 14vh;
+		text-align: center;
 	}
 	@media (min-width: 768px) {
-		.pane-frame { padding: 0 4rem; }
+		.pane-frame { padding: 24vh 4rem 14vh; }
 	}
 	@media (min-width: 1024px) {
-		.pane-frame { padding: 0 6rem; }
+		.pane-frame { padding: 26vh 6rem 14vh; }
 	}
-	.pane-stage {
+	.pane-top {
 		max-width: 56rem;
-		text-align: center;
+		width: 100%;
 	}
 
 	/* Per-pane reveal */
@@ -301,9 +303,16 @@
 		transition-delay: 0.36s;
 	}
 
-	/* Indicator dots */
+	/* Hero region wraps the pager + its indicator so the indicator scrolls
+	   away with the pager rather than sticking to the viewport. */
+	.hero-region {
+		position: relative;
+		height: 100vh;
+	}
+
+	/* Indicator dots — pinned to the bottom of the hero region, not the viewport. */
 	.pane-indicator {
-		position: fixed;
+		position: absolute;
 		bottom: 2rem;
 		left: 50%;
 		transform: translateX(-50%);

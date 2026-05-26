@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Navbar from '$lib/components/Navbar.svelte';
 	import HorizontalHeroPager from '$lib/components/sections/HorizontalHeroPager.svelte';
+	import HeroLead from '$lib/components/sections/HeroLead.svelte';
 	import Homepage from '$lib/components/sections/Homepage.svelte';
 	import Expertise from '$lib/components/sections/Expertise.svelte';
 	import About from '$lib/components/sections/About.svelte';
@@ -33,7 +34,10 @@
 
 	<!-- Below-pager content swaps based on the active hero pane. -->
 	{#key activeIdx}
-		<div class="pane-content divide-y divide-[var(--rule)]">
+		{#if activeIdx !== 0}
+			<HeroLead {activeIdx} />
+		{/if}
+		<div class="pane-content">
 			{#if activeIdx === 0}
 				<Homepage />
 				<Expertise />
